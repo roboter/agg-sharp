@@ -1,5 +1,5 @@
 ﻿/*
-Copyright (c) 2016, Lars Brubaker, Kevin Pope
+Copyright (c) 2025, Lars Brubaker, Kevin Pope
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,82 +28,74 @@ either expressed or implied, of the FreeBSD Project.
 */
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace MatterHackers.Agg
 {
-	/// <summary>
-	/// A tiny class to allow for the quick timing of a block of code in the debugger.
-	/// </summary>
-	/// /// <example> 
-	/// This sample shows how to use QuickTimer.
-	/// <code>
-	/// class SampleProgram
-	/// {
-	///     static int Main() 
-	///     {
-	///			// some code we want to time
-	///			using(new QuickTimer("Time To Get Cookies")
-	///			{
-	///				GetCookies();
-	///			}
-	///			
-	///         return 1;
-	///     }
-	/// }
-	/// </code>
-	/// </example>
-	public class QuickTimer : IDisposable
-	{
-		private string name;
-		private Stopwatch quickTimerTime = Stopwatch.StartNew();
-		private double startTime;
+    /// <summary>
+    /// A tiny class to allow for the quick timing of a block of code in the debugger.
+    /// </summary>
+    /// /// <example> 
+    /// This sample shows how to use QuickTimer.
+    /// <code>
+    /// class SampleProgram
+    /// {
+    ///     static int Main() 
+    ///     {
+    ///			// some code we want to time
+    ///			using(new QuickTimer("Time To Get Cookies")
+    ///			{
+    ///				GetCookies();
+    ///			}
+    ///			
+    ///         return 1;
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
+    public unsafe class QuickTimer : IDisposable
+    {
+        private double minTimeToReport;
+        private string name;
+        private Stopwatch quickTimerTime = Stopwatch.StartNew();
+        private double startTime;
+        private double* outSeconds; // Pointer to store the address of the out parameter
 
-		public QuickTimer(string name)
-		{
-			this.name = name;
-			startTime = quickTimerTime.Elapsed.TotalMilliseconds;
-		}
+        public QuickTimer(string name, double minTimeToReport = 0)
+        {
+            this.minTimeToReport = minTimeToReport;
+            this.name = name;
+            startTime = quickTimerTime.Elapsed.TotalMilliseconds;
+            this.outSeconds = null;
+        }
 
-		public void Dispose()
-		{
-			double totalTime = quickTimerTime.Elapsed.TotalMilliseconds - startTime;
-			Debug.WriteLine(name + ": {0:0.0}s".FormatWith(totalTime/1000.0));
-		}
-	}
+        public QuickTimer(string name, out double seconds, double minTimeToReport = 0)
+        {
+            this.minTimeToReport = minTimeToReport;
+            this.name = name;
+            startTime = quickTimerTime.Elapsed.TotalMilliseconds;
 
-	public class QuickTimer2 : IDisposable
-	{
-		private string name;
-		private Stopwatch quickTimerTime = Stopwatch.StartNew();
-		private double startTime;
+            // Store the address of the out parameter
+            fixed (double* p = &seconds)
+            {
+                this.outSeconds = p;
+            }
+        }
 
-		private static Dictionary<string, double> timers = new Dictionary<string, double>();
+        public void Dispose()
+        {
+            double totalTime = (quickTimerTime.Elapsed.TotalMilliseconds - startTime) / 1000.0;
 
-		public QuickTimer2(string name)
-		{
-			this.name = name;
-			if (!timers.ContainsKey(name))
-			{
-				timers.Add(name, 0);
-			}
+            // Update the out parameter if it was provided
+            if (outSeconds != null)
+            {
+                *outSeconds = totalTime;
+            }
 
-			startTime = quickTimerTime.Elapsed.TotalMilliseconds;
-		}
-
-		public void Dispose()
-		{
-			double totalTime = quickTimerTime.Elapsed.TotalMilliseconds - startTime;
-			timers[name] = timers[name] + totalTime;
-		}
-
-		public static void Report()
-		{
-			foreach (var kvp in timers)
-			{
-				Debug.WriteLine(kvp.Key + ": {0:0.0}s".FormatWith(kvp.Value / 1000.0));
-			}
-		}
-	}
+            if (totalTime > minTimeToReport)
+            {
+                Debug.WriteLine(name + ": {0:0.0}s".FormatWith(totalTime));
+            }
+        }
+    }
 }

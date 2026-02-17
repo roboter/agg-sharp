@@ -24,7 +24,7 @@ using MatterHackers.VectorMath;
 using System;
 using System.Collections.Generic;
 
-using FlagsAndCommand = MatterHackers.Agg.ShapePath.FlagsAndCommand;
+using FlagsAndCommand = MatterHackers.Agg.FlagsAndCommand;
 
 namespace MatterHackers.Agg.VertexSource
 {
@@ -37,8 +37,6 @@ namespace MatterHackers.Agg.VertexSource
 		private Direction direction;
 
 		private double endAngle;
-
-		private double flattenedDeltaAngle;
 
 		private Vector2 origin;
 
@@ -55,9 +53,10 @@ namespace MatterHackers.Agg.VertexSource
 		public Arc(double originX, double originY,
 			 double radiusX, double radiusY,
 			 double startAngle, double endAngle,
-			 Direction direction = Direction.CounterClockWise)
-		{
-			init(originX, originY, radiusX, radiusY, startAngle, endAngle, direction);
+			 Direction direction = Direction.CounterClockWise,
+             int numSegments = 0)
+        {
+			init(originX, originY, radiusX, radiusY, startAngle, endAngle, direction, numSegments);
 		}
 
 		public Arc(Vector2 origin,
@@ -87,40 +86,60 @@ namespace MatterHackers.Agg.VertexSource
 		public void init(double originX, double originY,
 			double radiusX, double radiusY,
 			double startAngle, double endAngle,
-			Direction direction = Direction.CounterClockWise)
+			Direction direction = Direction.CounterClockWise,
+            int numSegments = 0)
 		{
-			init(new Vector2(originX, originY), new Vector2(radiusX, radiusY), startAngle, endAngle, direction);
+			init(new Vector2(originX, originY), new Vector2(radiusX, radiusY), startAngle, endAngle, direction, numSegments);
 		}
 
 		public void init(Vector2 origin,
 			Vector2 radius,
 			double startAngle, double endAngle,
-			Direction direction = Direction.CounterClockWise)
+			Direction direction = Direction.CounterClockWise,
+            int numSegments = 0)
 		{
-			this.origin = origin;
+            this.NumSegments = numSegments;
+            this.origin = origin;
 			this.radius = radius;
 			this.startAngle = startAngle;
 			this.endAngle = endAngle;
 			this.direction = direction;
 		}
 
-		public override IEnumerable<VertexData> Vertices()
+        /// <summary>
+		/// This is the number of segments that will be used in each turn. Set to 0 to use the default of an angle approximation.
+		/// </summary>
+        public int NumSegments { get; set; } = 0;
+
+        public override IEnumerable<VertexData> Vertices()
 		{
-			double averageRadius = (Math.Abs(radius.X) + Math.Abs(radius.Y)) / 2;
-			flattenedDeltaAngle = Math.Acos(averageRadius / (averageRadius + 0.125 / ResolutionScale)) * 2;
+            if (NumSegments == 0)
+			{
+				return DeltaVertices();
+            }
+			else
+			{
+                return StepVertices();
+            }
+        }
+
+        private IEnumerable<VertexData> DeltaVertices()
+        {
+            double averageRadius = (Math.Abs(radius.X) + Math.Abs(radius.Y)) / 2;
+			var flattenedDeltaAngle = Math.Acos(averageRadius / (averageRadius + 0.125 / ResolutionScale)) * 2;
 			while (endAngle < startAngle)
 			{
 				endAngle += Math.PI * 2.0;
 			}
 
 			VertexData vertexData = new VertexData();
-			vertexData.command = FlagsAndCommand.MoveTo;
+			vertexData.Command = FlagsAndCommand.MoveTo;
 			if (direction == Direction.CounterClockWise)
 			{
-				vertexData.position = new Vector2(origin.X + Math.Cos(startAngle) * radius.X, origin.Y + Math.Sin(startAngle) * radius.Y);
+				vertexData.Position = new Vector2(origin.X + Math.Cos(startAngle) * radius.X, origin.Y + Math.Sin(startAngle) * radius.Y);
 				yield return vertexData;
 
-				vertexData.command = FlagsAndCommand.LineTo;
+				vertexData.Command = FlagsAndCommand.LineTo;
 				double angle = startAngle;
 				int numSteps = (int)((endAngle - startAngle) / flattenedDeltaAngle);
 
@@ -128,38 +147,95 @@ namespace MatterHackers.Agg.VertexSource
 				{
 					if (angle < endAngle)
 					{
-						vertexData.position = new Vector2(origin.X + Math.Cos(angle) * radius.X, origin.Y + Math.Sin(angle) * radius.Y);
+						vertexData.Position = new Vector2(origin.X + Math.Cos(angle) * radius.X, origin.Y + Math.Sin(angle) * radius.Y);
 						yield return vertexData;
 
 						angle += flattenedDeltaAngle;
 					}
 				}
 
-				vertexData.position = new Vector2(origin.X + Math.Cos(endAngle) * radius.X, origin.Y + Math.Sin(endAngle) * radius.Y);
+				vertexData.Position = new Vector2(origin.X + Math.Cos(endAngle) * radius.X, origin.Y + Math.Sin(endAngle) * radius.Y);
 				yield return vertexData;
 			}
 			else
 			{
-				vertexData.position = new Vector2(origin.X + Math.Cos(endAngle) * radius.X, origin.Y + Math.Sin(endAngle) * radius.Y);
+				vertexData.Position = new Vector2(origin.X + Math.Cos(endAngle) * radius.X, origin.Y + Math.Sin(endAngle) * radius.Y);
 				yield return vertexData;
 
-				vertexData.command = FlagsAndCommand.LineTo;
+				vertexData.Command = FlagsAndCommand.LineTo;
 				double angle = endAngle;
 				int numSteps = (int)((endAngle - startAngle) / flattenedDeltaAngle);
 				for (int i = 0; i <= numSteps; i++)
 				{
-					vertexData.position = new Vector2(origin.X + Math.Cos(angle) * radius.X, origin.Y + Math.Sin(angle) * radius.Y);
+					vertexData.Position = new Vector2(origin.X + Math.Cos(angle) * radius.X, origin.Y + Math.Sin(angle) * radius.Y);
 					yield return vertexData;
 
 					angle -= flattenedDeltaAngle;
 				}
 
-				vertexData.position = new Vector2(origin.X + Math.Cos(startAngle) * radius.X, origin.Y + Math.Sin(startAngle) * radius.Y);
+				vertexData.Position = new Vector2(origin.X + Math.Cos(startAngle) * radius.X, origin.Y + Math.Sin(startAngle) * radius.Y);
 				yield return vertexData;
 			}
 
-			vertexData.command = FlagsAndCommand.Stop;
+			vertexData.Command = FlagsAndCommand.Stop;
 			yield return vertexData;
 		}
-	}
+
+        private IEnumerable<VertexData> StepVertices()
+        {
+            while (endAngle < startAngle)
+            {
+                endAngle += Math.PI * 2.0;
+            }
+
+            var flattenedDeltaAngle = (endAngle - startAngle) / NumSegments;
+
+            VertexData vertexData = new VertexData();
+            vertexData.Command = FlagsAndCommand.MoveTo;
+            if (direction == Direction.CounterClockWise)
+            {
+                vertexData.Position = new Vector2(origin.X + Math.Cos(startAngle) * radius.X, origin.Y + Math.Sin(startAngle) * radius.Y);
+                yield return vertexData;
+
+                vertexData.Command = FlagsAndCommand.LineTo;
+                double angle = startAngle;
+
+                for (int i = 0; i <= NumSegments; i++)
+                {
+                    if (angle < endAngle)
+                    {
+                        vertexData.Position = new Vector2(origin.X + Math.Cos(angle) * radius.X, origin.Y + Math.Sin(angle) * radius.Y);
+                        yield return vertexData;
+
+                        angle += flattenedDeltaAngle;
+                    }
+                }
+
+                vertexData.Position = new Vector2(origin.X + Math.Cos(endAngle) * radius.X, origin.Y + Math.Sin(endAngle) * radius.Y);
+                yield return vertexData;
+            }
+            else
+            {
+                vertexData.Position = new Vector2(origin.X + Math.Cos(endAngle) * radius.X, origin.Y + Math.Sin(endAngle) * radius.Y);
+                yield return vertexData;
+
+                vertexData.Command = FlagsAndCommand.LineTo;
+                double angle = endAngle;
+                int numSteps = (int)((endAngle - startAngle) / flattenedDeltaAngle);
+                for (int i = 0; i <= numSteps; i++)
+                {
+                    vertexData.Position = new Vector2(origin.X + Math.Cos(angle) * radius.X, origin.Y + Math.Sin(angle) * radius.Y);
+                    yield return vertexData;
+
+                    angle -= flattenedDeltaAngle;
+                }
+
+                vertexData.Position = new Vector2(origin.X + Math.Cos(startAngle) * radius.X, origin.Y + Math.Sin(startAngle) * radius.Y);
+                yield return vertexData;
+            }
+
+            vertexData.Command = FlagsAndCommand.Stop;
+            yield return vertexData;
+        }
+    }
 }

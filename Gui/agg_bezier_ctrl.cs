@@ -237,9 +237,9 @@ namespace MatterHackers.Agg.UI
 			throw new NotImplementedException();
 		}
 
-		public override void rewind(int idx)
+		public override void Rewind(int idx)
 		{
-			m_poly.rewind(0);
+			m_poly.Rewind(0);
 			m_idx = idx;
 
 			m_curve.approximation_scale(1);
@@ -253,7 +253,7 @@ namespace MatterHackers.Agg.UI
 								(m_poly.GetXN(0) + m_poly.GetXN(1)) * 0.5,
 								(m_poly.GetYN(0) + m_poly.GetYN(1)) * 0.5,
 								 m_poly.GetXN(1), m_poly.GetYN(1));
-					m_stroke.rewind(0);
+					m_stroke.Rewind(0);
 					break;
 
 				case 1:                 // Control line 2
@@ -263,7 +263,7 @@ namespace MatterHackers.Agg.UI
 								(m_poly.GetXN(2) + m_poly.GetXN(3)) * 0.5,
 								(m_poly.GetYN(2) + m_poly.GetYN(3)) * 0.5,
 								 m_poly.GetXN(3), m_poly.GetYN(3));
-					m_stroke.rewind(0);
+					m_stroke.Rewind(0);
 					break;
 
 				case 2:                 // Curve itself
@@ -271,42 +271,42 @@ namespace MatterHackers.Agg.UI
 								 m_poly.GetXN(1), m_poly.GetYN(1),
 								 m_poly.GetXN(2), m_poly.GetYN(2),
 								 m_poly.GetXN(3), m_poly.GetYN(3));
-					m_stroke.rewind(0);
+					m_stroke.Rewind(0);
 					break;
 
 				case 3:                 // Point 1
 					m_ellipse.init(m_poly.GetXN(0), m_poly.GetYN(0), point_radius(), point_radius(), 20);
-					m_ellipse.rewind(0);
+					m_ellipse.Rewind(0);
 					break;
 
 				case 4:                 // Point 2
 					m_ellipse.init(m_poly.GetXN(1), m_poly.GetYN(1), point_radius(), point_radius(), 20);
-					m_ellipse.rewind(0);
+					m_ellipse.Rewind(0);
 					break;
 
 				case 5:                 // Point 3
 					m_ellipse.init(m_poly.GetXN(2), m_poly.GetYN(2), point_radius(), point_radius(), 20);
-					m_ellipse.rewind(0);
+					m_ellipse.Rewind(0);
 					break;
 
 				case 6:                 // Point 4
 					m_ellipse.init(m_poly.GetXN(3), m_poly.GetYN(3), point_radius(), point_radius(), 20);
-					m_ellipse.rewind(0);
+					m_ellipse.Rewind(0);
 					break;
 			}
 		}
 
-		public override ShapePath.FlagsAndCommand vertex(out double x, out double y)
+		public override FlagsAndCommand Vertex(out double x, out double y)
 		{
 			x = 0;
 			y = 0;
-			ShapePath.FlagsAndCommand cmd = ShapePath.FlagsAndCommand.Stop;
+			FlagsAndCommand cmd = FlagsAndCommand.Stop;
 			switch (m_idx)
 			{
 				case 0:
 				case 1:
 				case 2:
-					cmd = m_stroke.vertex(out x, out y);
+					cmd = m_stroke.Vertex(out x, out y);
 					break;
 
 				case 3:
@@ -314,13 +314,13 @@ namespace MatterHackers.Agg.UI
 				case 5:
 				case 6:
 				case 7:
-					cmd = m_ellipse.vertex(out x, out y);
+					cmd = m_ellipse.Vertex(out x, out y);
 					break;
 			}
 
-			if (!ShapePath.is_stop(cmd))
+			if (!ShapePath.IsStop(cmd))
 			{
-				ParentToChildTransform.transform(ref x, ref y);
+				ParentToChildTransform.Transform(ref x, ref y);
 			}
 			return cmd;
 		}
@@ -526,7 +526,7 @@ namespace MatterHackers.Agg.UI
 			throw new NotImplementedException();
 		}
 
-		public override void rewind(int idx)
+		public override void Rewind(int idx)
 		{
 			m_idx = idx;
 
@@ -538,7 +538,7 @@ namespace MatterHackers.Agg.UI
 								(m_poly.GetXN(0) + m_poly.GetXN(1)) * 0.5,
 								(m_poly.GetYN(0) + m_poly.GetYN(1)) * 0.5,
 								 m_poly.GetXN(1), m_poly.GetYN(1));
-					m_stroke.rewind(0);
+					m_stroke.Rewind(0);
 					break;
 
 				case 1:                 // Control line 2
@@ -546,57 +546,57 @@ namespace MatterHackers.Agg.UI
 								(m_poly.GetXN(1) + m_poly.GetXN(2)) * 0.5,
 								(m_poly.GetYN(1) + m_poly.GetYN(2)) * 0.5,
 								 m_poly.GetXN(2), m_poly.GetYN(2));
-					m_stroke.rewind(0);
+					m_stroke.Rewind(0);
 					break;
 
 				case 2:                 // Curve itself
 					m_curve.init(m_poly.GetXN(0), m_poly.GetYN(0),
 								 m_poly.GetXN(1), m_poly.GetYN(1),
 								 m_poly.GetXN(2), m_poly.GetYN(2));
-					m_stroke.rewind(0);
+					m_stroke.Rewind(0);
 					break;
 
 				case 3:                 // Point 1
 					m_ellipse.init(m_poly.GetXN(0), m_poly.GetYN(0), point_radius(), point_radius(), 20);
-					m_ellipse.rewind(0);
+					m_ellipse.Rewind(0);
 					break;
 
 				case 4:                 // Point 2
 					m_ellipse.init(m_poly.GetXN(1), m_poly.GetYN(1), point_radius(), point_radius(), 20);
-					m_ellipse.rewind(0);
+					m_ellipse.Rewind(0);
 					break;
 
 				case 5:                 // Point 3
 					m_ellipse.init(m_poly.GetXN(2), m_poly.GetYN(2), point_radius(), point_radius(), 20);
-					m_ellipse.rewind(0);
+					m_ellipse.Rewind(0);
 					break;
 			}
 		}
 
-		public override ShapePath.FlagsAndCommand vertex(out double x, out double y)
+		public override FlagsAndCommand Vertex(out double x, out double y)
 		{
 			x = 0;
 			y = 0;
-			ShapePath.FlagsAndCommand cmd = ShapePath.FlagsAndCommand.Stop;
+			FlagsAndCommand cmd = FlagsAndCommand.Stop;
 			switch (m_idx)
 			{
 				case 0:
 				case 1:
 				case 2:
-					cmd = m_stroke.vertex(out x, out y);
+					cmd = m_stroke.Vertex(out x, out y);
 					break;
 
 				case 3:
 				case 4:
 				case 5:
 				case 6:
-					cmd = m_ellipse.vertex(out x, out y);
+					cmd = m_ellipse.Vertex(out x, out y);
 					break;
 			}
 
-			if (!ShapePath.is_stop(cmd))
+			if (!ShapePath.IsStop(cmd))
 			{
-				ParentToChildTransform.transform(ref x, ref y);
+				ParentToChildTransform.Transform(ref x, ref y);
 			}
 			return cmd;
 		}

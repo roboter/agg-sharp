@@ -47,6 +47,104 @@ namespace MatterHackers.Agg.UI
 				}
 			}
 		}
+
+		/// <summary>
+		/// When the up or down arrow is pressed, select the appropriate IRadioButton in the list.
+		/// If a parent is a ScrollableWidget then scroll the selected IRadioButton into view.
+		/// </summary>
+		/// <param name="container">The container that has IRadioButtons</param>
+		public static void HookUpDownArrowsToScrollParent(GuiWidget container)
+		{
+			void ScrollIntoView(GuiWidget widget)
+			{
+				var scrollable = widget.Parents<ScrollableWidget>().FirstOrDefault();
+				if (scrollable != null)
+				{
+                    scrollable.ScrollIntoView(widget);
+                }
+			}
+
+			bool ExecuteIfRadioButton(GuiWidget widget, KeyEventArgs e)
+			{
+                if (widget is IRadioButton radioButton)
+                {
+                    // select the first IRadioButton before the selected one
+                    radioButton.Checked = true;
+                    ScrollIntoView(widget);
+                    e.SuppressKeyPress = true;
+                    return true;
+                }
+
+				return false;
+            }
+
+            // register the keydown event on the container to look for up and down arrows
+            container.KeyDown += (s, e) =>
+			{
+				// find the currently selected IRadioButton
+				var selectedRadioButton = container.Children.FirstOrDefault(c => c is IRadioButton radioButton && radioButton.Checked);
+
+				// if we found one
+				if (selectedRadioButton != null)
+				{
+					// find the index of the selected button
+					var selectedIndex = container.Children.IndexOf(selectedRadioButton);
+
+					// if we found the index
+					if (selectedIndex != -1)
+					{
+						switch (e.KeyCode)
+						{
+							case Keys.Up:
+								// Iterate backwards through the children and find the first IRadioButton before the selected one
+								foreach (var child in container.Children.Take(selectedIndex).Reverse())
+								{
+									if (ExecuteIfRadioButton(child, e))
+									{
+										break;
+									}
+								}
+								break;
+
+							case Keys.Down:
+								// Iterate forwards through the children and find the first IRadioButton after the selected one
+								foreach (var child in container.Children.Skip(selectedIndex + 1))
+								{
+									if (ExecuteIfRadioButton(child, e))
+									{
+										break;
+									}
+								}
+								break;
+
+							case Keys.Home:
+							case Keys.PageUp:
+								// select the first IRadioButton
+								foreach (var child in container.Children)
+								{
+									if (ExecuteIfRadioButton(child, e))
+									{
+										break;
+									}
+								}
+								break;
+
+							case Keys.End:
+                            case Keys.PageDown:
+                                // select the last IRadioButton
+                                foreach (var child in container.Children.Reverse())
+								{
+									if (ExecuteIfRadioButton(child, e))
+									{
+										break;
+									}
+								}
+								break;
+						}
+					}
+				}
+			};
+		}
 	}
 
 	public interface ICheckbox

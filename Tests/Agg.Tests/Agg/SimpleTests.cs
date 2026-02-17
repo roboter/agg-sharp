@@ -1,5 +1,5 @@
-﻿/*
-Copyright (c) 2014, Lars Brubaker
+/*
+Copyright (c) 2025, Lars Brubaker
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -27,22 +27,22 @@ of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the FreeBSD Project.
 */
 
+using Agg.Tests.Agg;
+using TUnit.Assertions;
+using TUnit.Core;
 using MatterHackers.Agg.VertexSource;
 using Newtonsoft.Json;
-using NUnit.Framework;
 using System;
-using System.Globalization;
-using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace MatterHackers.Agg.Tests
 {
-	[TestFixture, Category("Agg.SimpleTests")]
 	public class SimpleTests
 	{
 		public static bool GetNextNumberSameResult(String source, int startIndex, double expectedValue)
 		{
 			int startIndexNew = startIndex;
-			double newNumber = agg_basics.ParseDouble(source, ref startIndexNew, true);
+			double newNumber = Util.ParseDouble(source, ref startIndexNew, true);
 			int startIndexOld = startIndex;
 			double oldNumber = double.Parse(source.Substring(startIndexOld).Replace(" ", ""));
 			if (Math.Abs(newNumber - oldNumber) > .0001
@@ -55,7 +55,7 @@ namespace MatterHackers.Agg.Tests
 		}
 
 		[Test]
-		public void JsonSerializeVertexStorage()
+		public async Task JsonSerializeVertexStorage()
 		{
 			var test1Control = new VertexStorage();
 			test1Control.MoveTo(10, 11);
@@ -64,7 +64,7 @@ namespace MatterHackers.Agg.Tests
 			test1Control.ClosePolygon();
 			string jsonData = JsonConvert.SerializeObject(test1Control);
 			var test1Result = JsonConvert.DeserializeObject<VertexStorage>(jsonData);
-			Assert.AreEqual(test1Control.Count, test1Result.Count);
+			await Assert.That(test1Control.Count).IsEqualTo(test1Result.Count);
 
 			var control = test1Control.Vertices().GetEnumerator();
 			var result = test1Result.Vertices().GetEnumerator();
@@ -74,58 +74,58 @@ namespace MatterHackers.Agg.Tests
 				result.MoveNext();
 				var controlVertex = control.Current;
 				var resultVertex = result.Current;
-				Assert.AreEqual(controlVertex.command, resultVertex.command);
-				Assert.AreEqual(controlVertex.position, resultVertex.position);
+				await Assert.That(controlVertex.Command).IsEqualTo(resultVertex.Command);
+				await Assert.That(controlVertex.Position).IsEqualTo(resultVertex.Position);
 			}
 		}
 
 		[Test]
-		public void GetNextNumberWorks()
+		public async Task GetNextNumberWorks()
 		{
-			Assert.IsTrue(GetNextNumberSameResult("1234", 0, 1234));
-			Assert.IsTrue(GetNextNumberSameResult("1234 15", 5, 15));
-			Assert.IsTrue(GetNextNumberSameResult("-1234", 0, -1234));
-			Assert.IsTrue(GetNextNumberSameResult("- 1234", 0, -1234));
-			Assert.IsTrue(GetNextNumberSameResult("+1234", 0, 1234));
-			Assert.IsTrue(GetNextNumberSameResult("1234.3", 0, 1234.3));
-			Assert.IsTrue(GetNextNumberSameResult("1234.354", 0, 1234.354));
-			Assert.IsTrue(GetNextNumberSameResult("1234.354212", 0, 1234.354212));
-			Assert.IsTrue(GetNextNumberSameResult("0.123", 0, .123));
-			Assert.IsTrue(GetNextNumberSameResult(".123", 0, .123));
+			await Assert.That(GetNextNumberSameResult("1234", 0, 1234)).IsTrue();
+			await Assert.That(GetNextNumberSameResult("1234 15", 5, 15)).IsTrue();
+			await Assert.That(GetNextNumberSameResult("-1234", 0, -1234)).IsTrue();
+			await Assert.That(GetNextNumberSameResult("- 1234", 0, -1234)).IsTrue();
+			await Assert.That(GetNextNumberSameResult("+1234", 0, 1234)).IsTrue();
+			await Assert.That(GetNextNumberSameResult("1234.3", 0, 1234.3)).IsTrue();
+			await Assert.That(GetNextNumberSameResult("1234.354", 0, 1234.354)).IsTrue();
+			await Assert.That(GetNextNumberSameResult("1234.354212", 0, 1234.354212)).IsTrue();
+			await Assert.That(GetNextNumberSameResult("0.123", 0, .123)).IsTrue();
+			await Assert.That(GetNextNumberSameResult(".123", 0, .123)).IsTrue();
 		}
 
 		[Test]
-		public void TestGetHashCode()
+		public async Task TestGetHashCode()
 		{
 			{
 				Color a = new Color(10, 11, 12);
 				Color b = new Color(10, 11, 12);
-				Assert.IsTrue(a.GetHashCode() == b.GetHashCode());
+				await Assert.That(a.GetHashCode() == b.GetHashCode()).IsTrue();
 			}
 			{
 				ColorF a = new ColorF(10, 11, 12);
 				ColorF b = new ColorF(10, 11, 12);
-				Assert.IsTrue(a.GetHashCode() == b.GetHashCode());
+				await Assert.That(a.GetHashCode() == b.GetHashCode()).IsTrue();
 			}
 			{
 				BorderDouble a = new BorderDouble(10, 11, 12, 13);
 				BorderDouble b = new BorderDouble(10, 11, 12, 13);
-				Assert.IsTrue(a.GetHashCode() == b.GetHashCode());
+				await Assert.That(a.GetHashCode() == b.GetHashCode()).IsTrue();
 			}
 			{
 				Point2D a = new Point2D(10, 11);
 				Point2D b = new Point2D(10, 11);
-				Assert.IsTrue(a.GetHashCode() == b.GetHashCode());
+				await Assert.That(a.GetHashCode() == b.GetHashCode()).IsTrue();
 			}
 			{
 				RectangleDouble a = new RectangleDouble(10, 11, 12, 13);
 				RectangleDouble b = new RectangleDouble(10, 11, 12, 13);
-				Assert.IsTrue(a.GetHashCode() == b.GetHashCode());
+				await Assert.That(a.GetHashCode() == b.GetHashCode()).IsTrue();
 			}
 			{
 				RectangleInt a = new RectangleInt(10, 11, 12, 13);
 				RectangleInt b = new RectangleInt(10, 11, 12, 13);
-				Assert.IsTrue(a.GetHashCode() == b.GetHashCode());
+				await Assert.That(a.GetHashCode() == b.GetHashCode()).IsTrue();
 			}
 		}
 	}

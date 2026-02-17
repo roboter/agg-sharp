@@ -1,5 +1,5 @@
 ﻿/*
-Copyright (c) 2022, Lars Brubaker
+Copyright (c) 2025, Lars Brubaker
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Agg;
 using MatterHackers.Agg;
 using MatterHackers.Agg.Font;
 using MatterHackers.Agg.Image;
@@ -53,14 +54,16 @@ namespace MatterHackers.GuiAutomation
 
 		private IInputMethod inputSystem;
 
+		private const double DefaultWidgetWaitSeconds = 2.0;
+
 		/// <summary>
 		/// The number of seconds to move the mouse when going to a new position.
 		/// </summary>
-		public static double TimeToMoveMouse { get; set; } = .5;
+		public static double TimeToMoveMouse { get; set; } = .2;
 
 		private string imageDirectory;
 
-		public static double UpDelaySeconds { get; set; } = .2;
+		public static double UpDelaySeconds { get; set; } = .1;
 
 		public enum InputType
 		{
@@ -124,7 +127,7 @@ namespace MatterHackers.GuiAutomation
 			return inputSystem.GetCurrentScreen();
 		}
 
-		public bool ClickImage(string imageName, double secondsToWait = 0, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center, MouseButtons mouseButtons = MouseButtons.Left)
+		public bool ClickImage(string imageName, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center, MouseButtons mouseButtons = MouseButtons.Left)
 		{
 			ImageBuffer imageToLookFor = LoadImageFromSourceFolder(imageName);
 			if (imageToLookFor != null)
@@ -135,7 +138,7 @@ namespace MatterHackers.GuiAutomation
 			return false;
 		}
 
-		public bool ClickImage(ImageBuffer imageNeedle, double secondsToWait = 0, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center, MouseButtons mouseButtons = MouseButtons.Left)
+		public bool ClickImage(ImageBuffer imageNeedle, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center, MouseButtons mouseButtons = MouseButtons.Left)
 		{
 			if (origin == ClickOrigin.Center)
 			{
@@ -259,21 +262,21 @@ namespace MatterHackers.GuiAutomation
 			var satisfied = StaticDelay(checkConditionSatisfied, maxSeconds, checkInterval);
 
 			if (!satisfied)
-            {
+			{
 				throw new Exception($"Require Failed: {errorResponse}");
 			}
 
 			return this;
 		}
 
-		public bool DoubleClickImage(string imageName, double secondsToWait = 0, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
+		public bool DoubleClickImage(string imageName, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
 		{
 			throw new NotImplementedException();
 		}
 
 		public bool DragDropImage(ImageBuffer imageNeedleDrag,
 			ImageBuffer imageNeedleDrop,
-			double secondsToWait = 0,
+			double secondsToWait = DefaultWidgetWaitSeconds,
 			SearchRegion searchRegion = null,
 			Point2D offsetDrag = default(Point2D),
 			ClickOrigin originDrag = ClickOrigin.Center,
@@ -295,7 +298,7 @@ namespace MatterHackers.GuiAutomation
 
 		public bool DragDropImage(string imageNameDrag,
 			string imageNameDrop,
-			double secondsToWait = 0,
+			double secondsToWait = DefaultWidgetWaitSeconds,
 			SearchRegion searchRegion = null,
 			Point2D offsetDrag = default(Point2D),
 			ClickOrigin originDrag = ClickOrigin.Center,
@@ -333,7 +336,7 @@ namespace MatterHackers.GuiAutomation
 				{
 					graphics2D.Render(circle, Color.Green);
 
-					var mods = string.Join("", new[] {(Keys.Shift, "S"), (Keys.Control, "C")}
+					var mods = string.Join("", new[] { (Keys.Shift, "S"), (Keys.Control, "C") }
 						.Select(x => Keyboard.IsKeyDown(x.Item1) ? x.Item2 : "")
 						.Where(v => !string.IsNullOrEmpty(v)));
 
@@ -353,7 +356,7 @@ namespace MatterHackers.GuiAutomation
 			}
 		}
 
-		public bool DragImage(string imageName, double secondsToWait = 0, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
+		public bool DragImage(string imageName, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
 		{
 			ImageBuffer imageToLookFor = LoadImageFromSourceFolder(imageName);
 			if (imageToLookFor != null)
@@ -364,7 +367,7 @@ namespace MatterHackers.GuiAutomation
 			return false;
 		}
 
-		public bool DragImage(ImageBuffer imageNeedle, double secondsToWait = 0, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
+		public bool DragImage(ImageBuffer imageNeedle, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
 		{
 			if (origin == ClickOrigin.Center)
 			{
@@ -393,7 +396,7 @@ namespace MatterHackers.GuiAutomation
 			return false;
 		}
 
-		public bool DropImage(string imageName, double secondsToWait = 0, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
+		public bool DropImage(string imageName, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
 		{
 			ImageBuffer imageToLookFor = LoadImageFromSourceFolder(imageName);
 			if (imageToLookFor != null)
@@ -404,7 +407,7 @@ namespace MatterHackers.GuiAutomation
 			return false;
 		}
 
-		public bool DropImage(ImageBuffer imageNeedle, double secondsToWait = 0, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
+		public bool DropImage(ImageBuffer imageNeedle, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
 		{
 			if (origin == ClickOrigin.Center)
 			{
@@ -457,7 +460,7 @@ namespace MatterHackers.GuiAutomation
 			return this;
 		}
 
-		public bool ImageExists(string imageName, double secondsToWait = 0, SearchRegion searchRegion = null)
+		public bool ImageExists(string imageName, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null)
 		{
 			ImageBuffer imageToLookFor = LoadImageFromSourceFolder(imageName);
 			if (imageToLookFor != null)
@@ -468,7 +471,7 @@ namespace MatterHackers.GuiAutomation
 			return false;
 		}
 
-		public bool ImageExists(ImageBuffer imageNeedle, double secondsToWait = 0, SearchRegion searchRegion = null)
+		public bool ImageExists(ImageBuffer imageNeedle, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null)
 		{
 			if (secondsToWait > 0)
 			{
@@ -492,7 +495,7 @@ namespace MatterHackers.GuiAutomation
 			return false;
 		}
 
-		public bool MoveToImage(string imageName, double secondsToWait = 0, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
+		public bool MoveToImage(string imageName, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
 		{
 			throw new NotImplementedException();
 		}
@@ -604,7 +607,7 @@ namespace MatterHackers.GuiAutomation
 			return null;
 		}
 
-		public SearchRegion GetRegionByName(string widgetName, double secondsToWait = 0, SearchRegion searchRegion = null)
+		public SearchRegion GetRegionByName(string widgetName, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null)
 		{
 			GuiWidget namedWidget = GetWidgetByName(widgetName, out SystemWindow containingWindow, out _, secondsToWait, searchRegion);
 
@@ -623,13 +626,13 @@ namespace MatterHackers.GuiAutomation
 			return null;
 		}
 
-		public AutomationRunner GetWidgetByName(string widgetName, out GuiWidget widget, out SystemWindow containingWindow, double secondsToWait = 5, SearchRegion searchRegion = null, bool onlyVisible = true)
+		public AutomationRunner GetWidgetByName(string widgetName, out GuiWidget widget, out SystemWindow containingWindow, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, bool onlyVisible = true)
 		{
 			widget = GetWidgetByName(widgetName, out containingWindow, out _, secondsToWait, searchRegion, onlyVisible);
 			return this;
 		}
 
-		public GuiWidget GetWidgetByName(string widgetName, out SystemWindow containingWindow, double secondsToWait = 5, SearchRegion searchRegion = null, bool onlyVisible = true)
+		public GuiWidget GetWidgetByName(string widgetName, out SystemWindow containingWindow, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, bool onlyVisible = true)
 		{
 			return GetWidgetByName(widgetName, out containingWindow, out _, secondsToWait, searchRegion, onlyVisible);
 		}
@@ -649,7 +652,7 @@ namespace MatterHackers.GuiAutomation
 			UiThread.RunOnIdle(() => guiWidget.DebugShowBounds = false, 1);
 		}
 
-		public GuiWidget GetWidgetByName(string widgetName, out SystemWindow containingWindow, out Point2D offsetHint, double secondsToWait = 5, SearchRegion searchRegion = null, bool onlyVisible = true)
+		public GuiWidget GetWidgetByName(string widgetName, out SystemWindow containingWindow, out Point2D offsetHint, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, bool onlyVisible = true)
 		{
 			containingWindow = null;
 			offsetHint = Point2D.Zero;
@@ -658,6 +661,14 @@ namespace MatterHackers.GuiAutomation
 			if (getResults != null
 				&& getResults.Count > 0)
 			{
+				// TODO: Widgets really shouldn't have the same ID for testing. But some cases still occur:
+				//       PrinterTabRemainsAfterReloadAll: "Distance or Loops Field"
+				//       AddingImageConverterWorks: "Row Item Image Converter"
+				//       PulseLevelingTest: "Stop Task Button"
+				//       But, well, what about common dialog box widgets?
+				//if (getResults.Count > 1)
+				//	throw new Exception($"Widgets have duplicate names: {widgetName}");
+
 				this.SetTarget(getResults[0].Widget);
 
 				containingWindow = getResults[0].ContainingSystemWindow;
@@ -669,12 +680,12 @@ namespace MatterHackers.GuiAutomation
 			return null;
 		}
 
-		public object GetObjectByName(string widgetName, out SystemWindow containingWindow, double secondsToWait = 0, SearchRegion searchRegion = null)
+		public object GetObjectByName(string widgetName, out SystemWindow containingWindow, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null)
 		{
 			return GetObjectByName(widgetName, out containingWindow, out _, secondsToWait, searchRegion);
 		}
 
-		public object GetObjectByName(string widgetName, out SystemWindow containingWindow, out Point2D offsetHint, double secondsToWait = 0, SearchRegion searchRegion = null, bool onlyVisible = true)
+		public object GetObjectByName(string widgetName, out SystemWindow containingWindow, out Point2D offsetHint, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, bool onlyVisible = true)
 		{
 			containingWindow = null;
 			offsetHint = Point2D.Zero;
@@ -713,7 +724,7 @@ namespace MatterHackers.GuiAutomation
 			}
 		}
 
-		public List<GetByNameResults> GetWidgetsByName(string widgetName, double secondsToWait = 0, SearchRegion searchRegion = null, bool onlyVisible = true)
+		public List<GetByNameResults> GetWidgetsByName(string widgetName, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, bool onlyVisible = true)
 		{
 			if (secondsToWait > 0)
 			{
@@ -725,7 +736,7 @@ namespace MatterHackers.GuiAutomation
 			}
 
 			var namedWidgetsInRegion = new List<GetByNameResults>();
-			foreach(var systemWindow in SystemWindow.AllOpenSystemWindows.Reverse())
+			foreach (var systemWindow in SystemWindow.AllOpenSystemWindows.Reverse())
 			{
 				if (searchRegion != null) // only add the widgets that are in the screen region
 				{
@@ -768,7 +779,7 @@ namespace MatterHackers.GuiAutomation
 		/// <param name="widgetName">The given widget name</param>
 		/// <param name="secondsToWait">Total seconds to stay in this function waiting for the named widget to become visible.</param>
 		/// <returns>The current AutomationRunner so commands can be issued in sequence.</returns>
-		public AutomationRunner ClickByName(string widgetName, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center, bool isDoubleClick = false, double secondsToWait = 5)
+		public AutomationRunner ClickByName(string widgetName, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center, bool isDoubleClick = false, double secondsToWait = DefaultWidgetWaitSeconds)
 		{
 			GuiWidget widgetToClick = GetWidgetByName(widgetName, out SystemWindow containingWindow, out Point2D offsetHint, secondsToWait, searchRegion);
 
@@ -822,6 +833,10 @@ namespace MatterHackers.GuiAutomation
 
 			WaitforDraw(containingWindow);
 
+			// One wait just isn't enough sometimes. Maybe there's some more deferred processing going on.
+			// ValidateDoUndoTranslateXY appears to be more sensitive to this timing.
+			WaitforDraw(containingWindow);
+
 			Delay(0.2);
 		}
 
@@ -832,7 +847,7 @@ namespace MatterHackers.GuiAutomation
 		/// <param name="secondsToWait">Total seconds to stay in this function waiting for the named widget to become visible.</param>
 		public AutomationRunner RightClickByName(string widgetName, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center, bool isDoubleClick = false)
 		{
-			double secondsToWait = 5;
+			double secondsToWait = DefaultWidgetWaitSeconds;
 
 			GuiWidget widgetToClick = GetWidgetByName(widgetName, out SystemWindow containingWindow, out Point2D offsetHint, secondsToWait, searchRegion);
 			if (widgetToClick != null)
@@ -884,15 +899,23 @@ namespace MatterHackers.GuiAutomation
 		{
 			var resetEvent = new AutoResetEvent(false);
 
-			EventHandler<DrawEventArgs> afterDraw = (s, e) => resetEvent.Set();
-			EventHandler closed = (s, e) => resetEvent.Set();
+			void afterDraw(object s, DrawEventArgs e) => resetEvent.Set();
+			void closed(object s, EventArgs e) => resetEvent.Set();
 
-			containingWindow.AfterDraw += afterDraw;
-			containingWindow.Closed += closed;
+			UiThread.RunOnIdle(() =>
+			{
+				// The window appears to be reliably closed already in the SoftwareLevelingTest test.
+				if (containingWindow.HasBeenClosed)
+					resetEvent.Set();
+				else
+				{
+					containingWindow.AfterDraw += afterDraw;
+					containingWindow.Closed += closed;
+					containingWindow.Invalidate();
+				}
+			});
 
-			containingWindow.Invalidate();
-
-			resetEvent.WaitOne(maxSeconds * 1000);
+			resetEvent.WaitOne(maxSeconds);
 
 			containingWindow.AfterDraw -= afterDraw;
 			containingWindow.Closed -= closed;
@@ -900,7 +923,7 @@ namespace MatterHackers.GuiAutomation
 			return this;
 		}
 
-		public AutomationRunner DragDropByName(string widgetNameDrag, string widgetNameDrop, double secondsToWait = 0, SearchRegion searchRegion = null, Point2D offsetDrag = default(Point2D), ClickOrigin originDrag = ClickOrigin.Center, Point2D offsetDrop = default(Point2D), ClickOrigin originDrop = ClickOrigin.Center, MouseButtons mouseButtons = MouseButtons.Left)
+		public AutomationRunner DragDropByName(string widgetNameDrag, string widgetNameDrop, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, Point2D offsetDrag = default(Point2D), ClickOrigin originDrag = ClickOrigin.Center, Point2D offsetDrop = default(Point2D), ClickOrigin originDrop = ClickOrigin.Center, MouseButtons mouseButtons = MouseButtons.Left)
 		{
 			DragByName(widgetNameDrag, secondsToWait, searchRegion, offsetDrag, originDrag, mouseButtons);
 			DropByName(widgetNameDrop, secondsToWait, searchRegion, offsetDrop, originDrop, mouseButtons);
@@ -908,7 +931,7 @@ namespace MatterHackers.GuiAutomation
 			return this;
 		}
 
-		public AutomationRunner DragByName(string widgetName, double secondsToWait = 0, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center, MouseButtons mouseButtons = MouseButtons.Left)
+		public AutomationRunner DragByName(string widgetName, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center, MouseButtons mouseButtons = MouseButtons.Left)
 		{
 			GuiWidget widgetToClick = GetWidgetByName(widgetName, out SystemWindow containingWindow, out Point2D offsetHint, secondsToWait, searchRegion);
 			DragStart(widgetToClick, containingWindow, origin, offset, offsetHint, mouseButtons);
@@ -954,12 +977,14 @@ namespace MatterHackers.GuiAutomation
 
 			var screenPosition = SystemWindowToScreen(new Point2D(childBounds.Left + offset.x, childBounds.Bottom + offset.y), containingWindow);
 			SetMouseCursorPosition(screenPosition.x, screenPosition.y);
+			WaitforDraw(containingWindow);
 			inputSystem.CreateMouseEvent(GetMouseDown(mouseButtons), screenPosition.x, screenPosition.y, 0, 0);
+			WaitforDraw(containingWindow);
 
 			return screenPosition;
 		}
 
-		public AutomationRunner DropByName(string widgetName, double secondsToWait = 0, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center, MouseButtons mouseButtons = MouseButtons.Left)
+		public AutomationRunner DropByName(string widgetName, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center, MouseButtons mouseButtons = MouseButtons.Left)
 		{
 			GuiWidget widgetToClick = GetWidgetByName(widgetName, out SystemWindow containingWindow, out Point2D offsetHint, secondsToWait, searchRegion);
 
@@ -972,7 +997,9 @@ namespace MatterHackers.GuiAutomation
 
 			Point2D screenPosition = SystemWindowToScreen(new Point2D(childBounds.Left + offset.x, childBounds.Bottom + offset.y), containingWindow);
 			SetMouseCursorPosition(screenPosition.x, screenPosition.y);
+			WaitforDraw(containingWindow);
 			Drop(mouseButtons);
+			WaitforDraw(containingWindow);
 
 			return this;
 		}
@@ -981,7 +1008,6 @@ namespace MatterHackers.GuiAutomation
 		{
 			Point2D screenPosition = CurrentMousePosition();
 			inputSystem.CreateMouseEvent(GetMouseUp(mouseButtons), screenPosition.x, screenPosition.y, 0, 0);
-
 			return this;
 		}
 
@@ -990,7 +1016,7 @@ namespace MatterHackers.GuiAutomation
 			return this.ClickByName(widgetName, searchRegion, offset, origin, isDoubleClick: true);
 		}
 
-		public bool MoveToByName(string widgetName, double secondsToWait = 0, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
+		public bool MoveToByName(string widgetName, double secondsToWait = DefaultWidgetWaitSeconds, SearchRegion searchRegion = null, Point2D offset = default(Point2D), ClickOrigin origin = ClickOrigin.Center)
 		{
 			GuiWidget widgetToClick = GetWidgetByName(widgetName, out SystemWindow containingWindow, out Point2D offsetHint, secondsToWait, searchRegion);
 			if (widgetToClick != null)
@@ -1011,7 +1037,7 @@ namespace MatterHackers.GuiAutomation
 			return false;
 		}
 
-		public bool NameExists(string widgetName, double secondsToWait = 5, bool onlyVisible = true)
+		public bool NameExists(string widgetName, double secondsToWait = DefaultWidgetWaitSeconds, bool onlyVisible = true)
 		{
 			return WaitForName(widgetName, secondsToWait, onlyVisible);
 		}
@@ -1271,7 +1297,7 @@ namespace MatterHackers.GuiAutomation
 		/// </summary>
 		/// <param name="widgetName">The name of the widget to wait for</param>
 		/// <returns></returns>
-		public bool WaitForName(string widgetName, double secondsToWait = 5, bool onlyVisible = true, Func<GuiWidget, bool> predicate = null)
+		public bool WaitForName(string widgetName, double secondsToWait = DefaultWidgetWaitSeconds, bool onlyVisible = true, Func<GuiWidget, bool> predicate = null)
 		{
 			try
 			{
@@ -1290,11 +1316,11 @@ namespace MatterHackers.GuiAutomation
 
 				return true;
 			}
-            catch (Exception e)
-            {
+			catch (Exception)
+			{
 				return false;
-            }
-        }
+			}
+		}
 
 		/// <summary>
 		/// Wait up to secondsToWait for the named widget to disappear
@@ -1317,8 +1343,13 @@ namespace MatterHackers.GuiAutomation
 			return true;
 		}
 
-		public AutomationRunner WaitForWidgetEnabled(string widgetName, double secondsToWait = 5) // TODO: should have a search region
+		public AutomationRunner WaitForWidgetEnabled(string widgetName, double secondsToWait = DefaultWidgetWaitSeconds) // TODO: should have a search region
 		{
+			// This can be called after a Reload All. Wait for the next draw in the hope that the UI will sort itself out in time.
+			// Otherwise, the next `GetWidgetByName` call might pick up an orphaned (closed) widget.
+			var widget = this.GetWidgetByName(widgetName, out SystemWindow window);
+			WaitforDraw(window);
+
 			var timeWaited = Stopwatch.StartNew();
 			while (!NamedWidgetExists(widgetName)
 				&& timeWaited.Elapsed.TotalSeconds < secondsToWait)
@@ -1326,7 +1357,7 @@ namespace MatterHackers.GuiAutomation
 				Delay(.05);
 			}
 
-			var widget = this.GetWidgetByName(widgetName, out SystemWindow _);
+			widget = this.GetWidgetByName(widgetName, out SystemWindow _);
 			if (widget == null
 				|| this.WaitFor(() => widget.ActuallyVisibleOnScreen() && widget.Enabled,
 				secondsToWait - timeWaited.Elapsed.TotalSeconds) == null)
@@ -1360,6 +1391,11 @@ namespace MatterHackers.GuiAutomation
 
 		public static Task ShowWindowAndExecuteTests(SystemWindow initialSystemWindow, AutomationTest testMethod, double secondsToTestFailure = 30, string imagesDirectory = "", Action<AutomationRunner> closeWindow = null)
 		{
+			// Enable debug logging for AutomationRunner
+			DebugLogger.EnableFilter("AutomationRunner");
+
+			DebugLogger.LogMessage("AutomationRunner", $"=== TEST START === WindowTitle: {initialSystemWindow.Title}");
+
 			var testRunner = new AutomationRunner(InputMethod, DrawSimulatedMouse, imagesDirectory);
 
 			var resetEvent = new AutoResetEvent(false);
@@ -1367,31 +1403,39 @@ namespace MatterHackers.GuiAutomation
 			// On load, release the reset event
 			initialSystemWindow.Load += (s, e) =>
 			{
+				DebugLogger.LogMessage("AutomationRunner", $"LOAD EVENT FIRED - Setting resetEvent");
 				resetEvent.Set();
 			};
 
 			int testTimeout = (int)(1000 * secondsToTestFailure);
-			var timer = Stopwatch.StartNew();
-
-			bool testTimedOut = false;
+			Task delayTask = Task.Delay(testTimeout);
 
 			// Start two tasks, the timeout and the test method. Block in the test method until the first draw
-			var task = Task.WhenAny(
-				Task.Delay(testTimeout),
-				Task.Run(() =>
-				{
-					// Wait until the first system window draw before running the test method, up to the timeout
-					resetEvent.WaitOne(testTimeout);
+			var task = Task.WhenAny(delayTask, Task.Run(() =>
+			{
+				DebugLogger.LogMessage("AutomationRunner", "TASK STARTED - Waiting for resetEvent");
+				// Wait until the first system window draw before running the test method, up to the timeout
+				bool eventSet = resetEvent.WaitOne(testTimeout);
+				DebugLogger.LogMessage("AutomationRunner", $"RESET EVENT RESULT - EventSet: {eventSet}");
 
-					return testMethod(testRunner);
-				}));
+				if (eventSet)
+				{
+					DebugLogger.LogMessage("AutomationRunner", "EXECUTING TEST METHOD");
+					var result = testMethod(testRunner);
+					DebugLogger.LogMessage("AutomationRunner", "TEST METHOD COMPLETED");
+					return result;
+				}
+				else
+				{
+					DebugLogger.LogError("AutomationRunner", "TIMEOUT - Reset event never set");
+					throw new TimeoutException("Reset event timed out");
+				}
+			}));
 
 			// Once either the timeout or the test method has completed, store if a timeout occurred and shutdown the SystemWindow
 			task.ContinueWith(innerTask =>
 			{
-				long elapsedTime = timer.ElapsedMilliseconds;
-				testTimedOut = elapsedTime >= testTimeout;
-
+				DebugLogger.LogMessage("AutomationRunner", "CLEANUP - Task completed, calling CloseOnIdle");
 				// Invoke the callers close implementation or fall back to CloseOnIdle
 				if (closeWindow != null)
 				{
@@ -1404,17 +1448,92 @@ namespace MatterHackers.GuiAutomation
 			});
 
 			// Main thread blocks here until released via CloseOnIdle above
-			initialSystemWindow.ShowAsSystemWindow();
+			bool originalAllowDropState = SystemWindow.EnableAllowDrop;
+			SystemWindow.EnableAllowDrop = false;
+
+			try
+			{
+				DebugLogger.LogMessage("AutomationRunner", "CALLING ShowAsSystemWindow");
+				initialSystemWindow.ShowAsSystemWindow();
+			}
+			catch (Exception ex)
+			{
+				DebugLogger.LogError("AutomationRunner", $"ShowAsSystemWindow failed: {ex.Message}");
+				SystemWindow.EnableAllowDrop = originalAllowDropState;
+				throw;
+			}
+
+			bool timedOut = task.Result == delayTask;
+			DebugLogger.LogMessage("AutomationRunner", $"SHOW COMPLETED - TimedOut: {timedOut}");
 
 			// Wait for CloseOnIdle to complete
 			testRunner.WaitFor(() => initialSystemWindow.HasBeenClosed);
+			DebugLogger.LogMessage("AutomationRunner", $"WINDOW CLOSED - HasBeenClosed: {initialSystemWindow.HasBeenClosed}");
 
-			if (testTimedOut)
+			// Restore the original EnableAllowDrop state
+			SystemWindow.EnableAllowDrop = originalAllowDropState;
+
+			// Reset the static window provider and firstWindow flag for the next test
+			SystemWindow.ResetSystemWindowProvider();
+			try
 			{
-				// Throw an exception for test timeouts
+				// Use reflection to call the static method since we can't directly reference the platform-specific class
+				var winformsType = System.Type.GetType("MatterHackers.Agg.UI.WinformsSystemWindow, agg_platform_win32");
+				var resetMethod = winformsType?.GetMethod("ResetFirstWindowFlag", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+				resetMethod?.Invoke(null, null);
+			}
+			catch (Exception ex)
+			{
+				DebugLogger.LogWarning("AutomationRunner", $"Failed to reset WinformsSystemWindow state: {ex.Message}");
+			}
+
+			// Reset EnablePlatformWindowInput for the next test - this is critical for tests to receive input events
+			try
+			{
+				// Use reflection to access the static property
+				var platformWindowType = System.Type.GetType("MatterHackers.Agg.UI.IPlatformWindow, agg");
+				var enableInputProperty = platformWindowType?.GetProperty("EnablePlatformWindowInput");
+				if (enableInputProperty != null)
+				{
+					enableInputProperty.SetValue(null, true);
+				}
+			}
+			catch (Exception ex)
+			{
+				DebugLogger.LogWarning("AutomationRunner", $"Failed to reset EnablePlatformWindowInput: {ex.Message}");
+			}
+
+			// IMPORTANT: Reset UiThread LAST after window is fully closed to avoid clearing CloseOnIdle actions
+			try
+			{
+				// Let any remaining RunOnIdle actions complete first
+				UiThread.InvokePendingActions();
+
+				// Now reset UiThread static state for the next test
+				UiThread.ResetForTests();
+			}
+			catch (Exception ex)
+			{
+				DebugLogger.LogWarning("AutomationRunner", $"Failed to reset UiThread state: {ex.Message}");
+			}
+
+			// Reset Keyboard static state for the next test  
+			try
+			{
+				Keyboard.Clear();
+			}
+			catch (Exception ex)
+			{
+				DebugLogger.LogWarning("AutomationRunner", $"Failed to reset Keyboard state: {ex.Message}");
+			}
+
+			if (timedOut)
+			{
+				DebugLogger.LogError("AutomationRunner", "TEST TIMED OUT");
 				throw new TimeoutException("TestMethod timed out");
 			}
 
+			DebugLogger.LogMessage("AutomationRunner", "=== TEST COMPLETE ===");
 			// After the system window is closed return the task and any exception to the calling context
 			return task?.Result ?? Task.CompletedTask;
 		}

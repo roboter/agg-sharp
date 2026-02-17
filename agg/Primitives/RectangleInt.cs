@@ -1,5 +1,5 @@
 ﻿/*
-Copyright (c) 2014, Lars Brubaker
+Copyright (c) 2022, Lars Brubaker
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,293 +32,301 @@ using System;
 
 namespace MatterHackers.Agg
 {
-	public struct RectangleInt
-	{
-		public int Left, Bottom, Right, Top;
+    public struct RectangleInt
+    {
+        public int Left, Bottom, Right, Top;
 
-		public RectangleInt(int left, int bottom, int right, int top)
-		{
-			Left = left;
-			Bottom = bottom;
-			Right = right;
-			Top = top;
-		}
+        public RectangleInt(int left, int bottom, int right, int top)
+        {
+            Left = left;
+            Bottom = bottom;
+            Right = right;
+            Top = top;
+        }
 
-		public void SetRect(int left, int bottom, int right, int top)
-		{
-			init(left, bottom, right, top);
-		}
+        public RectangleInt(RectangleDouble rect)
+        {
+            Left = (int)Math.Floor(rect.Left);
+            Bottom = (int)Math.Floor(rect.Bottom);
+            Right = (int)Math.Ceiling(rect.Right);
+            Top = (int)Math.Ceiling(rect.Top);
+        }
 
-		public void init(int x1_, int y1_, int x2_, int y2_)
-		{
-			Left = x1_;
-			Bottom = y1_;
-			Right = x2_;
-			Top = y2_;
-		}
+        // This function assumes the rect is normalized
+        [JsonIgnoreAttribute]
+        public int Height
+        {
+            get
+            {
+                return Top - Bottom;
+            }
+        }
 
-		// This function assumes the rect is normalized
-		[JsonIgnoreAttribute]
-		public int Width
-		{
-			get
-			{
-				return Right - Left;
-			}
-		}
+        // This function assumes the rect is normalized
+        [JsonIgnoreAttribute]
+        public int Width
+        {
+            get
+            {
+                return Right - Left;
+            }
+        }
 
-		// This function assumes the rect is normalized
-		[JsonIgnoreAttribute]
-		public int Height
-		{
-			get
-			{
-				return Top - Bottom;
-			}
-		}
+        //***************************************************************************************************************************************************
+        public static bool ClipRect(RectangleInt pBoundingRect, ref RectangleInt pDestRect)
+        {
+            // clip off the top so we don't write into random memory
+            if (pDestRect.Top < pBoundingRect.Top)
+            {
+                pDestRect.Top = pBoundingRect.Top;
+                if (pDestRect.Top >= pDestRect.Bottom)
+                {
+                    return false;
+                }
+            }
+            // clip off the bottom
+            if (pDestRect.Bottom > pBoundingRect.Bottom)
+            {
+                pDestRect.Bottom = pBoundingRect.Bottom;
+                if (pDestRect.Bottom <= pDestRect.Top)
+                {
+                    return false;
+                }
+            }
 
-		public RectangleInt normalize()
-		{
-			int t;
-			if (Left > Right) { t = Left; Left = Right; Right = t; }
-			if (Bottom > Top) { t = Bottom; Bottom = Top; Top = t; }
-			return this;
-		}
+            // clip off the left
+            if (pDestRect.Left < pBoundingRect.Left)
+            {
+                pDestRect.Left = pBoundingRect.Left;
+                if (pDestRect.Left >= pDestRect.Right)
+                {
+                    return false;
+                }
+            }
 
-		public void ExpandToInclude(RectangleInt rectToInclude)
-		{
-			if (Right < rectToInclude.Right) Right = rectToInclude.Right;
-			if (Top < rectToInclude.Top) Top = rectToInclude.Top;
-			if (Left > rectToInclude.Left) Left = rectToInclude.Left;
-			if (Bottom > rectToInclude.Bottom) Bottom = rectToInclude.Bottom;
-		}
+            // clip off the right
+            if (pDestRect.Right > pBoundingRect.Right)
+            {
+                pDestRect.Right = pBoundingRect.Right;
+                if (pDestRect.Right <= pDestRect.Left)
+                {
+                    return false;
+                }
+            }
 
-		public bool clip(RectangleInt r)
-		{
-			if (Right > r.Right) Right = r.Right;
-			if (Top > r.Top) Top = r.Top;
-			if (Left < r.Left) Left = r.Left;
-			if (Bottom < r.Bottom) Bottom = r.Bottom;
-			return Left <= Right && Bottom <= Top;
-		}
+            return true;
+        }
 
-		public bool is_valid()
-		{
-			return Left <= Right && Bottom <= Top;
-		}
+        public static bool ClipRects(RectangleInt pBoundingRect, ref RectangleInt pSourceRect, ref RectangleInt pDestRect)
+        {
+            // clip off the top so we don't write into random memory
+            if (pDestRect.Top < pBoundingRect.Top)
+            {
+                // This type of clipping only works when we aren't scaling an image...
+                // If we are scaling an image, the source and dest sizes won't match
+                if (pSourceRect.Height != pDestRect.Height)
+                {
+                    throw new Exception("source and dest rects must have the same height");
+                }
 
-		public bool hit_test(int x, int y)
-		{
-			return (x >= Left && x <= Right && y >= Bottom && y <= Top);
-		}
+                pSourceRect.Top += pBoundingRect.Top - pDestRect.Top;
+                pDestRect.Top = pBoundingRect.Top;
+                if (pDestRect.Top >= pDestRect.Bottom)
+                {
+                    return false;
+                }
+            }
+            // clip off the bottom
+            if (pDestRect.Bottom > pBoundingRect.Bottom)
+            {
+                // This type of clipping only works when we aren't scaling an image...
+                // If we are scaling an image, the source and dest sizes won't match
+                if (pSourceRect.Height != pDestRect.Height)
+                {
+                    throw new Exception("source and dest rects must have the same height");
+                }
 
-		public bool IntersectRectangles(RectangleInt rectToCopy, RectangleInt rectToIntersectWith)
-		{
-			Left = rectToCopy.Left;
-			Bottom = rectToCopy.Bottom;
-			Right = rectToCopy.Right;
-			Top = rectToCopy.Top;
+                pSourceRect.Bottom -= pDestRect.Bottom - pBoundingRect.Bottom;
+                pDestRect.Bottom = pBoundingRect.Bottom;
+                if (pDestRect.Bottom <= pDestRect.Top)
+                {
+                    return false;
+                }
+            }
 
-			if (Left < rectToIntersectWith.Left) Left = rectToIntersectWith.Left;
-			if (Bottom < rectToIntersectWith.Bottom) Bottom = rectToIntersectWith.Bottom;
-			if (Right > rectToIntersectWith.Right) Right = rectToIntersectWith.Right;
-			if (Top > rectToIntersectWith.Top) Top = rectToIntersectWith.Top;
+            // clip off the left
+            if (pDestRect.Left < pBoundingRect.Left)
+            {
+                // This type of clipping only works when we aren't scaling an image...
+                // If we are scaling an image, the source and dest sizes won't match
+                if (pSourceRect.Width != pDestRect.Width)
+                {
+                    throw new Exception("source and dest rects must have the same width");
+                }
 
-			if (Left < Right && Bottom < Top)
-			{
-				return true;
-			}
+                pSourceRect.Left += pBoundingRect.Left - pDestRect.Left;
+                pDestRect.Left = pBoundingRect.Left;
+                if (pDestRect.Left >= pDestRect.Right)
+                {
+                    return false;
+                }
+            }
+            // clip off the right
+            if (pDestRect.Right > pBoundingRect.Right)
+            {
+                // This type of clipping only works when we aren't scaling an image...
+                // If we are scaling an image, the source and dest sizes won't match
+                if (pSourceRect.Width != pDestRect.Width)
+                {
+                    throw new Exception("source and dest rects must have the same width");
+                }
 
-			return false;
-		}
+                pSourceRect.Right -= pDestRect.Right - pBoundingRect.Right;
+                pDestRect.Right = pBoundingRect.Right;
+                if (pDestRect.Right <= pDestRect.Left)
+                {
+                    return false;
+                }
+            }
 
-		public bool IntersectWithRectangle(RectangleInt rectToIntersectWith)
-		{
-			if (Left < rectToIntersectWith.Left) Left = rectToIntersectWith.Left;
-			if (Bottom < rectToIntersectWith.Bottom) Bottom = rectToIntersectWith.Bottom;
-			if (Right > rectToIntersectWith.Right) Right = rectToIntersectWith.Right;
-			if (Top > rectToIntersectWith.Top) Top = rectToIntersectWith.Top;
+            return true;
+        }
 
-			if (Left < Right && Bottom < Top)
-			{
-				return true;
-			}
+        public static bool DoIntersect(RectangleInt rect1, RectangleInt rect2)
+        {
+            int x1 = rect1.Left;
+            int y1 = rect1.Bottom;
+            int x2 = rect1.Right;
+            int y2 = rect1.Top;
 
-			return false;
-		}
+            if (x1 < rect2.Left) x1 = rect2.Left;
+            if (y1 < rect2.Bottom) y1 = rect2.Bottom;
+            if (x2 > rect2.Right) x2 = rect2.Right;
+            if (y2 > rect2.Top) y2 = rect2.Top;
 
-		public static bool DoIntersect(RectangleInt rect1, RectangleInt rect2)
-		{
-			int x1 = rect1.Left;
-			int y1 = rect1.Bottom;
-			int x2 = rect1.Right;
-			int y2 = rect1.Top;
+            if (x1 < x2 && y1 < y2)
+            {
+                return true;
+            }
 
-			if (x1 < rect2.Left) x1 = rect2.Left;
-			if (y1 < rect2.Bottom) y1 = rect2.Bottom;
-			if (x2 > rect2.Right) x2 = rect2.Right;
-			if (y2 > rect2.Top) y2 = rect2.Top;
+            return false;
+        }
 
-			if (x1 < x2 && y1 < y2)
-			{
-				return true;
-			}
+        public bool clip(RectangleInt r)
+        {
+            if (Right > r.Right) Right = r.Right;
+            if (Top > r.Top) Top = r.Top;
+            if (Left < r.Left) Left = r.Left;
+            if (Bottom < r.Bottom) Bottom = r.Bottom;
+            return Left <= Right && Bottom <= Top;
+        }
 
-			return false;
-		}
+        public void ExpandToInclude(RectangleInt rectToInclude)
+        {
+            if (Right < rectToInclude.Right) Right = rectToInclude.Right;
+            if (Top < rectToInclude.Top) Top = rectToInclude.Top;
+            if (Left > rectToInclude.Left) Left = rectToInclude.Left;
+            if (Bottom > rectToInclude.Bottom) Bottom = rectToInclude.Bottom;
+        }
 
-		//---------------------------------------------------------unite_rectangles
-		public void unite_rectangles(RectangleInt r1, RectangleInt r2)
-		{
-			Left = r1.Left;
-			Bottom = r1.Bottom;
-			Right = r1.Right;
-			Right = r1.Top;
-			if (Right < r2.Right) Right = r2.Right;
-			if (Top < r2.Top) Top = r2.Top;
-			if (Left > r2.Left) Left = r2.Left;
-			if (Bottom > r2.Bottom) Bottom = r2.Bottom;
-		}
+        public override int GetHashCode()
+        {
+            return new { x1 = Left, x2 = Right, y1 = Bottom, y2 = Top }.GetHashCode();
+        }
 
-		public void Inflate(int inflateSize)
-		{
-			Left = Left - inflateSize;
-			Bottom = Bottom - inflateSize;
-			Right = Right + inflateSize;
-			Top = Top + inflateSize;
-		}
+        public bool hit_test(int x, int y)
+        {
+            return (x >= Left && x <= Right && y >= Bottom && y <= Top);
+        }
 
-		public void Offset(int x, int y)
-		{
-			Left = Left + x;
-			Bottom = Bottom + y;
-			Right = Right + x;
-			Top = Top + y;
-		}
+        public void Inflate(int inflateSize)
+        {
+            Left = Left - inflateSize;
+            Bottom = Bottom - inflateSize;
+            Right = Right + inflateSize;
+            Top = Top + inflateSize;
+        }
 
-		public override int GetHashCode()
-		{
-			return new { x1 = Left, x2 = Right, y1 = Bottom, y2 = Top }.GetHashCode();
-		}
+        public void init(int x1_, int y1_, int x2_, int y2_)
+        {
+            Left = x1_;
+            Bottom = y1_;
+            Right = x2_;
+            Top = y2_;
+        }
 
-		public static bool ClipRects(RectangleInt pBoundingRect, ref RectangleInt pSourceRect, ref RectangleInt pDestRect)
-		{
-			// clip off the top so we don't write into random memory
-			if (pDestRect.Top < pBoundingRect.Top)
-			{
-				// This type of clipping only works when we aren't scaling an image...
-				// If we are scaling an image, the source and dest sizes won't match
-				if (pSourceRect.Height != pDestRect.Height)
-				{
-					throw new Exception("source and dest rects must have the same height");
-				}
+        public bool IntersectRectangles(RectangleInt rectToCopy, RectangleInt rectToIntersectWith)
+        {
+            Left = rectToCopy.Left;
+            Bottom = rectToCopy.Bottom;
+            Right = rectToCopy.Right;
+            Top = rectToCopy.Top;
 
-				pSourceRect.Top += pBoundingRect.Top - pDestRect.Top;
-				pDestRect.Top = pBoundingRect.Top;
-				if (pDestRect.Top >= pDestRect.Bottom)
-				{
-					return false;
-				}
-			}
-			// clip off the bottom
-			if (pDestRect.Bottom > pBoundingRect.Bottom)
-			{
-				// This type of clipping only works when we aren't scaling an image...
-				// If we are scaling an image, the source and dest sizes won't match
-				if (pSourceRect.Height != pDestRect.Height)
-				{
-					throw new Exception("source and dest rects must have the same height");
-				}
+            if (Left < rectToIntersectWith.Left) Left = rectToIntersectWith.Left;
+            if (Bottom < rectToIntersectWith.Bottom) Bottom = rectToIntersectWith.Bottom;
+            if (Right > rectToIntersectWith.Right) Right = rectToIntersectWith.Right;
+            if (Top > rectToIntersectWith.Top) Top = rectToIntersectWith.Top;
 
-				pSourceRect.Bottom -= pDestRect.Bottom - pBoundingRect.Bottom;
-				pDestRect.Bottom = pBoundingRect.Bottom;
-				if (pDestRect.Bottom <= pDestRect.Top)
-				{
-					return false;
-				}
-			}
+            if (Left < Right && Bottom < Top)
+            {
+                return true;
+            }
 
-			// clip off the left
-			if (pDestRect.Left < pBoundingRect.Left)
-			{
-				// This type of clipping only works when we aren't scaling an image...
-				// If we are scaling an image, the source and dest sizes won't match
-				if (pSourceRect.Width != pDestRect.Width)
-				{
-					throw new Exception("source and dest rects must have the same width");
-				}
+            return false;
+        }
 
-				pSourceRect.Left += pBoundingRect.Left - pDestRect.Left;
-				pDestRect.Left = pBoundingRect.Left;
-				if (pDestRect.Left >= pDestRect.Right)
-				{
-					return false;
-				}
-			}
-			// clip off the right
-			if (pDestRect.Right > pBoundingRect.Right)
-			{
-				// This type of clipping only works when we aren't scaling an image...
-				// If we are scaling an image, the source and dest sizes won't match
-				if (pSourceRect.Width != pDestRect.Width)
-				{
-					throw new Exception("source and dest rects must have the same width");
-				}
+        public bool IntersectWithRectangle(RectangleInt rectToIntersectWith)
+        {
+            if (Left < rectToIntersectWith.Left) Left = rectToIntersectWith.Left;
+            if (Bottom < rectToIntersectWith.Bottom) Bottom = rectToIntersectWith.Bottom;
+            if (Right > rectToIntersectWith.Right) Right = rectToIntersectWith.Right;
+            if (Top > rectToIntersectWith.Top) Top = rectToIntersectWith.Top;
 
-				pSourceRect.Right -= pDestRect.Right - pBoundingRect.Right;
-				pDestRect.Right = pBoundingRect.Right;
-				if (pDestRect.Right <= pDestRect.Left)
-				{
-					return false;
-				}
-			}
+            if (Left < Right && Bottom < Top)
+            {
+                return true;
+            }
 
-			return true;
-		}
+            return false;
+        }
 
-		//***************************************************************************************************************************************************
-		public static bool ClipRect(RectangleInt pBoundingRect, ref RectangleInt pDestRect)
-		{
-			// clip off the top so we don't write into random memory
-			if (pDestRect.Top < pBoundingRect.Top)
-			{
-				pDestRect.Top = pBoundingRect.Top;
-				if (pDestRect.Top >= pDestRect.Bottom)
-				{
-					return false;
-				}
-			}
-			// clip off the bottom
-			if (pDestRect.Bottom > pBoundingRect.Bottom)
-			{
-				pDestRect.Bottom = pBoundingRect.Bottom;
-				if (pDestRect.Bottom <= pDestRect.Top)
-				{
-					return false;
-				}
-			}
+        public bool is_valid()
+        {
+            return Left <= Right && Bottom <= Top;
+        }
 
-			// clip off the left
-			if (pDestRect.Left < pBoundingRect.Left)
-			{
-				pDestRect.Left = pBoundingRect.Left;
-				if (pDestRect.Left >= pDestRect.Right)
-				{
-					return false;
-				}
-			}
+        public RectangleInt normalize()
+        {
+            int t;
+            if (Left > Right) { t = Left; Left = Right; Right = t; }
+            if (Bottom > Top) { t = Bottom; Bottom = Top; Top = t; }
+            return this;
+        }
 
-			// clip off the right
-			if (pDestRect.Right > pBoundingRect.Right)
-			{
-				pDestRect.Right = pBoundingRect.Right;
-				if (pDestRect.Right <= pDestRect.Left)
-				{
-					return false;
-				}
-			}
+        public void Offset(int x, int y)
+        {
+            Left = Left + x;
+            Bottom = Bottom + y;
+            Right = Right + x;
+            Top = Top + y;
+        }
 
-			return true;
-		}
-	}
+        public void SetRect(int left, int bottom, int right, int top)
+        {
+            init(left, bottom, right, top);
+        }
+
+        //---------------------------------------------------------unite_rectangles
+        public void unite_rectangles(RectangleInt r1, RectangleInt r2)
+        {
+            Left = r1.Left;
+            Bottom = r1.Bottom;
+            Right = r1.Right;
+            Right = r1.Top;
+            if (Right < r2.Right) Right = r2.Right;
+            if (Top < r2.Top) Top = r2.Top;
+            if (Left > r2.Left) Left = r2.Left;
+            if (Bottom > r2.Bottom) Bottom = r2.Bottom;
+        }
+    }
 }

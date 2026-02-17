@@ -73,9 +73,9 @@ namespace MatterHackers.Agg.UI
 		public BorderDouble RowPadding { get; set; } = new BorderDouble(3);
 		public double MaxLineWidth { get; private set; }
 
-		public BorderDouble RowBoarder { get; set; }
+		public BorderDouble RowBorder { get; set; }
 
-		public Color RowBoarderColor { get; set; }
+		public Color RowBorderColor { get; set; }
 
 		public bool Proportional { get; set; }
 
@@ -170,8 +170,15 @@ namespace MatterHackers.Agg.UI
 
 		private bool needAnotherLayout;
 
+
+		private double contentWidth = 0;
+
+		public double ContentWidth => contentWidth;
+
 		protected void DoWrappingLayout()
 		{
+			contentWidth = 0;
+
 			if (doingLayout)
 			{
 				needAnotherLayout = true;
@@ -217,6 +224,8 @@ namespace MatterHackers.Agg.UI
 						childWidth = child.MinimumSize.X + child.DeviceMarginAndBorder.Width;
 					}
 
+					contentWidth += childWidth;
+
 					if (runningSize + childWidth > this.Width - rowPaddingWidth
 						|| child is IHardBreak)
 					{
@@ -237,8 +246,8 @@ namespace MatterHackers.Agg.UI
 							Margin = RowMargin,
 							Padding = RowPadding,
 							HAnchor = HAnchor.Stretch,
-							Border = RowBoarder,
-							BorderColor = RowBoarderColor,
+							Border = RowBorder,
+							BorderColor = RowBorderColor,
 						};
 
 						if (lastItemWasHorizontalSpacer)

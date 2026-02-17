@@ -40,7 +40,7 @@ namespace MatterHackers.Agg.Font
 			// return all the data for the glyph
 			foreach (VertexData vertexData in glyph.Vertices())
 			{
-				if (ShapePath.is_stop(vertexData.command))
+				if (ShapePath.IsStop(vertexData.Command))
 				{
 					break;
 				}
@@ -59,7 +59,8 @@ namespace MatterHackers.Agg.Font
 	{
 		private static StyledTypeFaceImageCache instance;
 
-		private Dictionary<TypeFace, Dictionary<Color, Dictionary<double, Dictionary<char, ImageBuffer>>>> typeFaceImageCache = new Dictionary<TypeFace, Dictionary<Color, Dictionary<double, Dictionary<char, ImageBuffer>>>>();
+        // Keys: TypeFace, Color, FontSize, Character
+        private Dictionary<TypeFace, Dictionary<Color, Dictionary<double, Dictionary<char, ImageBuffer>>>> typeFaceImageCache = new Dictionary<TypeFace, Dictionary<Color, Dictionary<double, Dictionary<char, ImageBuffer>>>>();
 
 		// private so you can't use it by accident (it is a singleton)
 		private StyledTypeFaceImageCache()
@@ -118,8 +119,8 @@ namespace MatterHackers.Agg.Font
 	{
 		public TypeFace TypeFace { get; private set; }
 
-		private const int PointsPerInch = 72;
-		private const int PixelsPerInch = 96;
+		public const int PointsPerInch = 72;
+		public const int PixelsPerInch = 96;
 
 		private double emSizeInPixels;
 		private double currentEmScaling;

@@ -26,12 +26,12 @@ namespace MatterHackers.Agg.VertexSource
 	// in the original agg this was conv_transform
 	public class VertexSourceApplyTransform : IVertexSourceProxy
 	{
-		private Transform.ITransform transformToApply;
+		public ITransform TransformToApply { get; private set; }
 
 		public ITransform Transform
 		{
-			get => transformToApply;
-			set => transformToApply = value;
+			get => TransformToApply;
+			set => TransformToApply = value;
 		}
 
 		public IVertexSource VertexSource { get; set; }
@@ -40,15 +40,25 @@ namespace MatterHackers.Agg.VertexSource
 		{
 		}
 
-		public VertexSourceApplyTransform(Transform.ITransform newTransformeToApply)
+		public VertexSourceApplyTransform(ITransform newTransformeToApply)
 			: this(null, newTransformeToApply)
 		{
 		}
 
-		public VertexSourceApplyTransform(IVertexSource vertexSource, Transform.ITransform newTransformeToApply)
+        public ulong GetLongHashCode(ulong hash = 14695981039346656037)
+        {
+            foreach (var vertex in this.Vertices())
+            {
+                hash = vertex.GetLongHashCode(hash);
+            }
+
+            return hash;
+        }
+
+        public VertexSourceApplyTransform(IVertexSource vertexSource, ITransform newTransformeToApply)
 		{
 			VertexSource = vertexSource;
-			transformToApply = newTransformeToApply;
+			TransformToApply = newTransformeToApply;
 		}
 
 		public void attach(IVertexSource vertexSource)
@@ -62,37 +72,37 @@ namespace MatterHackers.Agg.VertexSource
 			{
 				VertexData transformedVertex = vertexData;
 
-				if (ShapePath.is_vertex(transformedVertex.command))
+				if (ShapePath.IsVertex(transformedVertex.Command))
 				{
-					var position = transformedVertex.position;
-					transformToApply.transform(ref position.X, ref position.Y);
-					transformedVertex.position = position;
+					var position = transformedVertex.Position;
+					TransformToApply.Transform(ref position.X, ref position.Y);
+					transformedVertex.Position = position;
 				}
 
 				yield return transformedVertex;
 			}
 		}
 
-		public void rewind(int path_id)
+		public void Rewind(int path_id)
 		{
-			VertexSource.rewind(path_id);
+			VertexSource.Rewind(path_id);
 		}
 
-		public ShapePath.FlagsAndCommand vertex(out double x, out double y)
+		public FlagsAndCommand Vertex(out double x, out double y)
 		{
-			ShapePath.FlagsAndCommand cmd = VertexSource.vertex(out x, out y);
+			FlagsAndCommand cmd = VertexSource.Vertex(out x, out y);
 
-			if (ShapePath.is_vertex(cmd))
+			if (ShapePath.IsVertex(cmd))
 			{
-				transformToApply.transform(ref x, ref y);
+				TransformToApply.Transform(ref x, ref y);
 			}
 
 			return cmd;
 		}
 
-		public void SetTransformToApply(Transform.ITransform newTransformeToApply)
+		public void SetTransformToApply(ITransform newTransformeToApply)
 		{
-			transformToApply = newTransformeToApply;
+			TransformToApply = newTransformeToApply;
 		}
 	}
 }

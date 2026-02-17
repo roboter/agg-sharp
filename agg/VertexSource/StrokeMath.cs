@@ -180,7 +180,7 @@ namespace MatterHackers.Agg.VertexSource
 
 		public void calc_cap(IVertexDest vc, VertexDistance v0, VertexDistance v1, double len)
 		{
-			vc.remove_all();
+			vc.Clear();
 
 			double dx1 = (v1.y - v0.y) / len;
 			double dy1 = (v1.x - v0.x) / len;
@@ -246,7 +246,7 @@ namespace MatterHackers.Agg.VertexSource
 			double dx2 = m_width * (v2.y - v1.y) / len2;
 			double dy2 = m_width * (v2.x - v1.x) / len2;
 
-			vc.remove_all();
+			vc.Clear();
 
 			double cp = agg_math.cross_product(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
 			if (cp != 0 && (cp > 0) == (m_width > 0))
@@ -378,7 +378,7 @@ namespace MatterHackers.Agg.VertexSource
 
 		private void add_vertex(IVertexDest vc, double x, double y)
 		{
-			vc.add(new Vector2(x, y));
+			vc.Add(new Vector2(x, y));
 		}
 
 		private void calc_arc(IVertexDest vc,
@@ -446,7 +446,7 @@ namespace MatterHackers.Agg.VertexSource
 			{
 				// Calculation of the intersection succeeded
 				//---------------------
-				di = agg_math.calc_distance(v1.x, v1.y, xi, yi);
+				di = agg_math.CalcDistance(v1.x, v1.y, xi, yi);
 				if (di <= lim)
 				{
 					// Inside the miter limit

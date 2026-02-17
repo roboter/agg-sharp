@@ -67,14 +67,16 @@ namespace MatterHackers.Localizations
 
 		private string twoLetterIsoLanguageName;
 
-		public TranslationMap(string twoLetterIsoLanguageName)
+		public TranslationMap(string twoLetterIsoLanguageName, string savePath, string sourcePath)
 		{
 			this.twoLetterIsoLanguageName = twoLetterIsoLanguageName;
-		}
+            this.SavePath = savePath;
+            this.SourceFilesPath = sourcePath;
+        }
 
-		public TranslationMap(StreamReader machineTranslation, StreamReader humanTranslation, string twoLetterIsoLanguageName)
-		{
-			this.twoLetterIsoLanguageName = twoLetterIsoLanguageName;
+		public TranslationMap(StreamReader machineTranslation, StreamReader humanTranslation, string twoLetterIsoLanguageName, string savePath, string sourcePath)
+			: this(twoLetterIsoLanguageName, savePath, sourcePath)
+        {
 			this.machineTranslation = ReadIntoDictionary(machineTranslation);
 			this.humanTranslation = ReadIntoDictionary(humanTranslation);
 		}
@@ -163,11 +165,12 @@ namespace MatterHackers.Localizations
 
         private void SearchCodeForTranslations()
         {
+			return;
 			// make sure we have not run already and that we have a translation file loaded
             if (!haveParsedSourceCode
                 && this.machineTranslation != null)
             {
-                var masterTranslationFile = Path.Combine(MasterSavePath, "Master.txt");
+                var masterTranslationFile = Path.Combine(SavePath, "Master.txt");
 				var fileInfo = new FileInfo(masterTranslationFile);
 
 				// only build if we are more than 10 days out of date
@@ -211,8 +214,8 @@ namespace MatterHackers.Localizations
 		private object locker = new object();
         private static bool haveParsedSourceCode;
 
-		private string MasterSavePath => "C:\\" + Path.Combine("Development", "MCCentral", "MatterControl", "StaticData", "Translations");
-		private string SourceFilesPath => @"C:\Development\MCCentral";
+		private string SavePath;
+		private string SourceFilesPath;
 
 		private void AddNewString(string englishString)
 		{
@@ -222,12 +225,12 @@ namespace MatterHackers.Localizations
 				{
 					machineTranslation.Add(englishString, englishString);
 
-					if (!Directory.Exists(MasterSavePath))
+					if (!Directory.Exists(SavePath))
 					{
-						Directory.CreateDirectory(MasterSavePath);
+						Directory.CreateDirectory(SavePath);
 					}
 
-					var newFile = Path.Combine(MasterSavePath, "Master_new.txt");
+					var newFile = Path.Combine(SavePath, "Master_new.txt");
 					// save content to new file
 					using (var masterFileStream = File.CreateText(newFile))
 					{
@@ -240,7 +243,7 @@ namespace MatterHackers.Localizations
 					}
 
 					// delete the old file
-					var oldFile = Path.Combine(MasterSavePath, "Master.txt");
+					var oldFile = Path.Combine(SavePath, "Master.txt");
 					File.Delete(oldFile);
 
 					// rename the new file

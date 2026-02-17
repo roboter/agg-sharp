@@ -20,9 +20,11 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Forms;
+using Agg;
 using MatterHackers.VectorMath;
 
 namespace MatterHackers.Agg.UI
@@ -104,7 +106,10 @@ namespace MatterHackers.Agg.UI
 			}
 
 			this.TitleBarHeight = RectangleToScreen(ClientRectangle).Top - this.Top;
-			this.AllowDrop = true;
+			if (SystemWindow.EnableAllowDrop)
+			{
+				this.AllowDrop = true;
+			}
 
 			string iconPath = File.Exists("application.ico") ?
 				"application.ico" :
@@ -241,7 +246,7 @@ namespace MatterHackers.Agg.UI
 			}
 
 			// use this to debug that windows are drawing and updating.
-			// onPaintCount++;
+			onPaintCount++;
 			// Text = string.Format("Draw {0}, OnPaint {1}", drawCount, onPaintCount);
 		}
 
@@ -293,8 +298,8 @@ namespace MatterHackers.Agg.UI
 			if (AggSystemWindow != null && !AggSystemWindow.HasBeenClosed)
 			{
 				// Call on closing and check if we can close (a "do you want to save" might cancel the close. :).
-				var eventArgs = new ClosingEventArgs();
-				AggSystemWindow.OnClosing(eventArgs);
+				var eventArgs = new ShouldCloseEventArgs();
+				AggSystemWindow.OnShouldClose(eventArgs);
 
 				if (eventArgs.Cancel)
 				{
@@ -335,7 +340,17 @@ namespace MatterHackers.Agg.UI
 		public string Caption
 		{
 			get => this.Text;
-			set => this.Text = value;
+			set
+			{
+				if (this.InvokeRequired)
+				{
+					this.Invoke(new Action(() => this.Text = value));
+				}
+				else
+				{
+					this.Text = value;
+				}
+			}
 		}
 
 		public Point2D DesktopPosition
@@ -418,95 +433,111 @@ namespace MatterHackers.Agg.UI
 
 		public void SetCursor(Cursors cursorToSet)
 		{
-			switch (cursorToSet)
+			void DoSetCursor(Cursors cursorToSet)
 			{
-				case Cursors.Arrow:
-					this.Cursor = System.Windows.Forms.Cursors.Arrow;
-					break;
+				switch (cursorToSet)
+				{
+					case Cursors.Arrow:
+						this.Cursor = System.Windows.Forms.Cursors.Arrow;
+						break;
 
-				case Cursors.Hand:
-					this.Cursor = System.Windows.Forms.Cursors.Hand;
-					break;
+					case Cursors.Hand:
+						this.Cursor = System.Windows.Forms.Cursors.Hand;
+						break;
 
-				case Cursors.IBeam:
-					this.Cursor = System.Windows.Forms.Cursors.IBeam;
-					break;
-				case Cursors.Cross:
-					this.Cursor = System.Windows.Forms.Cursors.Cross;
-					break;
-				case Cursors.Default:
-					this.Cursor = System.Windows.Forms.Cursors.Default;
-					break;
-				case Cursors.Help:
-					this.Cursor = System.Windows.Forms.Cursors.Help;
-					break;
-				case Cursors.HSplit:
-					this.Cursor = System.Windows.Forms.Cursors.HSplit;
-					break;
-				case Cursors.No:
-					this.Cursor = System.Windows.Forms.Cursors.No;
-					break;
-				case Cursors.NoMove2D:
-					this.Cursor = System.Windows.Forms.Cursors.NoMove2D;
-					break;
-				case Cursors.NoMoveHoriz:
-					this.Cursor = System.Windows.Forms.Cursors.NoMoveHoriz;
-					break;
-				case Cursors.NoMoveVert:
-					this.Cursor = System.Windows.Forms.Cursors.NoMoveVert;
-					break;
-				case Cursors.PanEast:
-					this.Cursor = System.Windows.Forms.Cursors.PanEast;
-					break;
-				case Cursors.PanNE:
-					this.Cursor = System.Windows.Forms.Cursors.PanNE;
-					break;
-				case Cursors.PanNorth:
-					this.Cursor = System.Windows.Forms.Cursors.PanNorth;
-					break;
-				case Cursors.PanNW:
-					this.Cursor = System.Windows.Forms.Cursors.PanNW;
-					break;
-				case Cursors.PanSE:
-					this.Cursor = System.Windows.Forms.Cursors.PanSE;
-					break;
-				case Cursors.PanSouth:
-					this.Cursor = System.Windows.Forms.Cursors.PanSouth;
-					break;
-				case Cursors.PanSW:
-					this.Cursor = System.Windows.Forms.Cursors.PanSW;
-					break;
-				case Cursors.PanWest:
-					this.Cursor = System.Windows.Forms.Cursors.PanWest;
-					break;
-				case Cursors.SizeAll:
-					this.Cursor = System.Windows.Forms.Cursors.SizeAll;
-					break;
-				case Cursors.SizeNESW:
-					this.Cursor = System.Windows.Forms.Cursors.SizeNESW;
-					break;
-				case Cursors.SizeNS:
-					this.Cursor = System.Windows.Forms.Cursors.SizeNS;
-					break;
-				case Cursors.SizeNWSE:
-					this.Cursor = System.Windows.Forms.Cursors.SizeNWSE;
-					break;
-				case Cursors.SizeWE:
-					this.Cursor = System.Windows.Forms.Cursors.SizeWE;
-					break;
-				case Cursors.UpArrow:
-					this.Cursor = System.Windows.Forms.Cursors.UpArrow;
-					break;
-				case Cursors.VSplit:
-					this.Cursor = System.Windows.Forms.Cursors.VSplit;
-					break;
-				case Cursors.WaitCursor:
-					this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
-					break;
+					case Cursors.IBeam:
+						this.Cursor = System.Windows.Forms.Cursors.IBeam;
+						break;
+					case Cursors.Cross:
+						this.Cursor = System.Windows.Forms.Cursors.Cross;
+						break;
+					case Cursors.Default:
+						this.Cursor = System.Windows.Forms.Cursors.Default;
+						break;
+					case Cursors.Help:
+						this.Cursor = System.Windows.Forms.Cursors.Help;
+						break;
+					case Cursors.HSplit:
+						this.Cursor = System.Windows.Forms.Cursors.HSplit;
+						break;
+					case Cursors.No:
+						this.Cursor = System.Windows.Forms.Cursors.No;
+						break;
+					case Cursors.NoMove2D:
+						this.Cursor = System.Windows.Forms.Cursors.NoMove2D;
+						break;
+					case Cursors.NoMoveHoriz:
+						this.Cursor = System.Windows.Forms.Cursors.NoMoveHoriz;
+						break;
+					case Cursors.NoMoveVert:
+						this.Cursor = System.Windows.Forms.Cursors.NoMoveVert;
+						break;
+					case Cursors.PanEast:
+						this.Cursor = System.Windows.Forms.Cursors.PanEast;
+						break;
+					case Cursors.PanNE:
+						this.Cursor = System.Windows.Forms.Cursors.PanNE;
+						break;
+					case Cursors.PanNorth:
+						this.Cursor = System.Windows.Forms.Cursors.PanNorth;
+						break;
+					case Cursors.PanNW:
+						this.Cursor = System.Windows.Forms.Cursors.PanNW;
+						break;
+					case Cursors.PanSE:
+						this.Cursor = System.Windows.Forms.Cursors.PanSE;
+						break;
+					case Cursors.PanSouth:
+						this.Cursor = System.Windows.Forms.Cursors.PanSouth;
+						break;
+					case Cursors.PanSW:
+						this.Cursor = System.Windows.Forms.Cursors.PanSW;
+						break;
+					case Cursors.PanWest:
+						this.Cursor = System.Windows.Forms.Cursors.PanWest;
+						break;
+					case Cursors.SizeAll:
+						this.Cursor = System.Windows.Forms.Cursors.SizeAll;
+						break;
+					case Cursors.SizeNESW:
+						this.Cursor = System.Windows.Forms.Cursors.SizeNESW;
+						break;
+					case Cursors.SizeNS:
+						this.Cursor = System.Windows.Forms.Cursors.SizeNS;
+						break;
+					case Cursors.SizeNWSE:
+						this.Cursor = System.Windows.Forms.Cursors.SizeNWSE;
+						break;
+					case Cursors.SizeWE:
+						this.Cursor = System.Windows.Forms.Cursors.SizeWE;
+						break;
+					case Cursors.UpArrow:
+						this.Cursor = System.Windows.Forms.Cursors.UpArrow;
+						break;
+					case Cursors.VSplit:
+						this.Cursor = System.Windows.Forms.Cursors.VSplit;
+						break;
+					case Cursors.WaitCursor:
+						this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
+						break;
+				}
+			}
+
+			if (this.InvokeRequired)
+			{
+				this.Invoke(new Action(() =>
+				{
+					DoSetCursor(cursorToSet);
+				}));
+			}
+			else
+			{
+				DoSetCursor(cursorToSet);
 			}
 		}
 
-		public int TitleBarHeight { get; private set; } = 0;
+
+        public int TitleBarHeight { get; private set; } = 0;
 
 		public new Vector2 MinimumSize
 		{
@@ -525,46 +556,98 @@ namespace MatterHackers.Agg.UI
 
 		private static bool firstWindow = true;
 
+		/// <summary>
+		/// Resets the static firstWindow flag to allow fresh message loop initialization for tests
+		/// </summary>
+		public static void ResetFirstWindowFlag()
+		{
+			DebugLogger.EnableFilter("WinformsSystemWindow");
+			DebugLogger.LogMessage("WinformsSystemWindow", $"ResetFirstWindowFlag called - Current firstWindow: {firstWindow}");
+			firstWindow = true;
+			
+			// Reset all other static state for clean test isolation
+			DebugLogger.LogMessage("WinformsSystemWindow", "Resetting WinForms static state");
+			
+			// Reset main window reference
+			MainWindowsFormsWindow = null;
+			
+			// Reset idle processing state
+			processingOnIdle = false;
+			
+			// Reset and recreate idle timer to ensure clean state
+			if (idleCallBackTimer != null)
+			{
+				idleCallBackTimer.Stop();
+				idleCallBackTimer.Dispose();
+				idleCallBackTimer = null;
+			}
+			
+			DebugLogger.LogMessage("WinformsSystemWindow", "WinForms static state reset completed");
+		}
+
 		public void ShowSystemWindow(SystemWindow systemWindow)
 		{
+			DebugLogger.EnableFilter("WinformsSystemWindow");
+			DebugLogger.LogMessage("WinformsSystemWindow", "ShowSystemWindow ENTRY");
+			
+			DebugLogger.LogMessage("WinformsSystemWindow", "ShowSystemWindow STEP 1");
+			
 			// If ShowSystemWindow is called on loaded/visible SystemWindow, call BringToFront and exit
 			if (systemWindow.PlatformWindow == this
 				&& !SingleWindowMode)
 			{
+				DebugLogger.LogMessage("WinformsSystemWindow", "Window already shown, calling BringToFront");
 				this.BringToFront();
 				return;
 			}
 
+			DebugLogger.LogMessage("WinformsSystemWindow", "ShowSystemWindow STEP 2");
+			
 			// Set the active SystemWindow & PlatformWindow references
 			this.AggSystemWindow = systemWindow;
 			systemWindow.PlatformWindow = this;
 
+			DebugLogger.LogMessage("WinformsSystemWindow", "ShowSystemWindow STEP 3");
+			
 			systemWindow.AnchorAll();
 
+			DebugLogger.LogMessage("WinformsSystemWindow", "ShowSystemWindow STEP 4");
+
+			// If this isn't true, prepare for deadlocks.
+			//System.Diagnostics.Debug.Assert(SynchronizationContext.Current == null || SynchronizationContext.Current is WindowsFormsSynchronizationContext);
+            
 			if (firstWindow)
 			{
+				DebugLogger.LogMessage("WinformsSystemWindow", "First window - starting Application.Run message loop");
 				firstWindow = false;
 
+				DebugLogger.LogMessage("WinformsSystemWindow", "ShowSystemWindow STEP 5 - About to call Show()");
 				this.Show();
+				DebugLogger.LogMessage("WinformsSystemWindow", "ShowSystemWindow STEP 6 - Show() completed");
 
 				// Enable idle processing now that the window is ready to handle events.
 				lock (SingleInvokeLock)
 				{
 					enableIdleProcessing = true;
 				}
-
+				
+				DebugLogger.LogMessage("WinformsSystemWindow", "ShowSystemWindow STEP 7 - About to call Application.Run()");
 				Application.Run(this);
+				DebugLogger.LogMessage("WinformsSystemWindow", "Application.Run completed - message loop exited");
 			}
 			else if (!SingleWindowMode)
 			{
+				DebugLogger.LogMessage("WinformsSystemWindow", "Subsequent window - calling Show via RunOnIdle");
 				UiThread.RunOnIdle(() =>
 				{
 					if (systemWindow.IsModal)
 					{
+						DebugLogger.LogMessage("WinformsSystemWindow", "Showing modal window");
 						this.ShowModal();
 					}
 					else
 					{
+						DebugLogger.LogMessage("WinformsSystemWindow", "Showing non-modal window");
 						this.Show();
 						this.BringToFront();
 					}

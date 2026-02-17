@@ -2,27 +2,37 @@
 
 namespace MatterHackers.Agg
 {
+	public enum CommandHint
+	{
+        None,
+        C4ControlFromPrev,
+		C4ControlToPoint,
+		C4Point,
+        C3ControlFromPrev,
+        C3Point,
+    }
+
+    [Flags]
+    public enum FlagsAndCommand
+    {
+        Stop = 0x00,
+        MoveTo = 0x01,
+        LineTo = 0x02,
+        Curve3 = 0x03,
+        Curve4 = 0x04,
+        EndPoly = 0x0F,
+        CommandsMask = 0x0F,
+
+        FlagNone = 0x00,
+        FlagCCW = 0x10,
+        FlagCW = 0x20,
+        FlagClose = 0x40,
+        FlagsMask = 0xF0
+    };
+    
 	public static class ShapePath
 	{
-		[Flags]
-		public enum FlagsAndCommand
-		{
-			Stop = 0x00,
-			MoveTo = 0x01,
-			LineTo = 0x02,
-			Curve3 = 0x03,
-			Curve4 = 0x04,
-			EndPoly = 0x0F,
-			CommandsMask = 0x0F,
-
-			FlagNone = 0x00,
-			FlagCCW = 0x10,
-			FlagCW = 0x20,
-			FlagClose = 0x40,
-			FlagsMask = 0xF0
-		};
-
-		public static bool is_vertex(FlagsAndCommand c)
+		public static bool IsVertex(FlagsAndCommand c)
 		{
 			return c >= FlagsAndCommand.MoveTo
 				&& c < FlagsAndCommand.EndPoly;
@@ -33,22 +43,22 @@ namespace MatterHackers.Agg
 			return c >= FlagsAndCommand.LineTo && c < FlagsAndCommand.EndPoly;
 		}
 
-		public static bool is_stop(FlagsAndCommand c)
+		public static bool IsStop(FlagsAndCommand c)
 		{
 			return c == FlagsAndCommand.Stop;
 		}
 
-		public static bool is_move_to(FlagsAndCommand c)
+		public static bool IsMoveTo(FlagsAndCommand c)
 		{
 			return c == FlagsAndCommand.MoveTo;
 		}
 
-		public static bool is_line_to(FlagsAndCommand c)
+		public static bool IsLineTo(FlagsAndCommand c)
 		{
 			return c == FlagsAndCommand.LineTo;
 		}
 
-		public static bool is_curve(FlagsAndCommand c)
+		public static bool IsCurve(FlagsAndCommand c)
 		{
 			return c == FlagsAndCommand.Curve3
 				|| c == FlagsAndCommand.Curve4;
@@ -69,15 +79,15 @@ namespace MatterHackers.Agg
 			return (c & FlagsAndCommand.CommandsMask) == FlagsAndCommand.EndPoly;
 		}
 
-		public static bool is_close(FlagsAndCommand c)
+		public static bool IsClose(FlagsAndCommand c)
 		{
 			return (c & ~(FlagsAndCommand.FlagCW | FlagsAndCommand.FlagCCW)) ==
 				   (FlagsAndCommand.EndPoly | FlagsAndCommand.FlagClose);
 		}
 
-		public static bool is_next_poly(FlagsAndCommand c)
+		public static bool IsNextPoly(FlagsAndCommand c)
 		{
-			return is_stop(c) || is_move_to(c) || is_end_poly(c);
+			return IsStop(c) || IsMoveTo(c) || is_end_poly(c);
 		}
 
 		public static bool is_cw(FlagsAndCommand c)
@@ -130,10 +140,10 @@ namespace MatterHackers.Agg
 
 		static public void shorten_path(VertexSequence vs, double s, int closed)
 		{
-			if (s > 0.0 && vs.size() > 1)
+			if (s > 0.0 && vs.Count > 1)
 			{
 				double d;
-				int n = (int)(vs.size() - 2);
+				int n = (int)(vs.Count - 2);
 				while (n != 0)
 				{
 					d = vs[n].dist;
@@ -142,13 +152,13 @@ namespace MatterHackers.Agg
 					s -= d;
 					--n;
 				}
-				if (vs.size() < 2)
+				if (vs.Count < 2)
 				{
-					vs.remove_all();
+					vs.Clear();
 				}
 				else
 				{
-					n = (int)vs.size() - 1;
+					n = (int)vs.Count - 1;
 					VertexDistance prev = vs[n - 1];
 					VertexDistance last = vs[n];
 					d = (prev.dist - s) / prev.dist;

@@ -1,5 +1,5 @@
 ﻿/*
-Copyright (c) 2017, Lars Brubaker, John Lewin
+Copyright (c) 2025, Lars Brubaker, John Lewin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ either expressed or implied, of the FreeBSD Project.
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Agg;
 using MatterHackers.Agg.Platform;
 using MatterHackers.VectorMath;
 
@@ -37,9 +38,9 @@ namespace MatterHackers.Agg.UI
 {
 	public class SystemWindow : GuiWidget
 	{
-		private string _title = "";
+		public static bool EnableAllowDrop = true;
 
-		public event EventHandler<ClosingEventArgs> Closing;
+		private string _title = "";
 
 		public bool AlwaysOnTopOfMain { get; set; }
 
@@ -89,11 +90,6 @@ namespace MatterHackers.Agg.UI
 			// Invoke Close on our PlatformWindow and release our reference when complete
 			systemWindowProvider?.CloseSystemWindow(this);
 			this.PlatformWindow = null;
-		}
-
-		public virtual void OnClosing(ClosingEventArgs eventArgs)
-		{
-			Closing?.Invoke(this, eventArgs);
 		}
 
 		private static readonly List<SystemWindow> _openWindows = new List<SystemWindow>();
@@ -190,17 +186,44 @@ namespace MatterHackers.Agg.UI
 
 		private static ISystemWindowProvider systemWindowProvider = null;
 
+		/// <summary>
+		/// Resets the static systemWindowProvider to allow fresh initialization for tests
+		/// </summary>
+		public static void ResetSystemWindowProvider()
+		{
+			DebugLogger.EnableFilter("SystemWindow");
+			DebugLogger.LogMessage("SystemWindow", $"ResetSystemWindowProvider called - Current provider: {systemWindowProvider?.GetType().Name ?? "null"}");
+			systemWindowProvider = null;
+		}
+
 		public void ShowAsSystemWindow()
 		{
+			DebugLogger.EnableFilter("SystemWindow");
+			DebugLogger.LogMessage("SystemWindow", $"ShowAsSystemWindow called - Title: '{Title}', Width: {Width}, Height: {Height}");
+			DebugLogger.LogMessage("SystemWindow", $"SystemWindow state - HasBeenClosed: {HasBeenClosed}, Visible: {Visible}");
+			DebugLogger.LogMessage("SystemWindow", $"PlatformWindow is null: {PlatformWindow == null}");
+			DebugLogger.LogMessage("SystemWindow", $"_openWindows count before add: {_openWindows.Count}");
+			
 			if (systemWindowProvider == null)
 			{
+				DebugLogger.LogMessage("SystemWindow", "systemWindowProvider is null, creating new instance");
 				systemWindowProvider = AggContext.CreateInstanceFrom<ISystemWindowProvider>(AggContext.Config.ProviderTypes.SystemWindowProvider);
+				DebugLogger.LogMessage("SystemWindow", $"Created systemWindowProvider type: {systemWindowProvider?.GetType().Name}");
+			}
+			else
+			{
+				DebugLogger.LogMessage("SystemWindow", $"Using existing systemWindowProvider type: {systemWindowProvider.GetType().Name}");
 			}
 
 			_openWindows.Add(this);
+			DebugLogger.LogMessage("SystemWindow", $"Added to _openWindows, count now: {_openWindows.Count}");
+			DebugLogger.LogMessage("SystemWindow", $"AllOpenSystemWindows count: {AllOpenSystemWindows.Count()}");
 
 			// Create the backing IPlatformWindow object and set its AggSystemWindow property to this new SystemWindow
-			systemWindowProvider.ShowSystemWindow(this);
+			DebugLogger.LogMessage("SystemWindow", "Calling systemWindowProvider.ShowSystemWindow");
+
+            systemWindowProvider.ShowSystemWindow(this);
+			DebugLogger.LogMessage("SystemWindow", $"systemWindowProvider.ShowSystemWindow completed - PlatformWindow null: {PlatformWindow == null}");
 		}
 
 		public virtual bool Maximized { get; set; } = false;

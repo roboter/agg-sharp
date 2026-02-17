@@ -1,22 +1,48 @@
-﻿/*
- * Created by SharpDevelop.
- * User: lbrubaker
- * Date: 3/26/2010
- * Time: 4:37 PM
- *
- * To change this template use Tools | Options | Coding | Edit Standard Headers.
- */
+/*
+Copyright (c) 2025, Lars Brubaker
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The views and conclusions contained in the software and documentation are those
+of the authors and should not be interpreted as representing official policies,
+either expressed or implied, of the FreeBSD Project.
+*/
 
 using System;
 using System.Collections.Generic;
-using NUnit.Framework;
+using System.Threading.Tasks;
 using Tesselate;
 
 namespace MatterHackers.Agg.Tests
 {
-	[TestFixture]
+
 	public class TesselatorTests
 	{
+		private const double EPSILON = 1e-6;
+
+		private static bool AreApproximatelyEqual(double a, double b, double epsilon = EPSILON)
+		{
+			return Math.Abs(a - b) < epsilon;
+		}
 		public static string[][] InsructionStream = new string[][]
 			{
 				new string[] { "BP",
@@ -383,26 +409,25 @@ namespace MatterHackers.Agg.Tests
 			"E", },
 		};
 
-		private int CurrentInputTest;
 		private int CurrentOutput;
 		private int CurrentOutputTest;
 		private string LastString;
 
-		public void BeginCallBack(Tesselator.TriangleListType type)
+		private void BeginCallBack(Tesselator.TriangleListType type)
 		{
-			Assert.IsTrue(GetNextOutputAsString() == "B");
+			if (GetNextOutputAsString() != "B") throw new Exception("Expected 'B'");
 			switch (type)
 			{
 				case Tesselator.TriangleListType.Triangles:
-					Assert.IsTrue(GetNextOutputAsString() == "TRI");
+					if (GetNextOutputAsString() != "TRI") throw new Exception("Expected 'TRI'");
 					break;
 
 				case Tesselator.TriangleListType.TriangleFan:
-					Assert.IsTrue(GetNextOutputAsString() == "FAN");
+					if (GetNextOutputAsString() != "FAN") throw new Exception("Expected 'FAN'");
 					break;
 
 				case Tesselator.TriangleListType.TriangleStrip:
-					Assert.IsTrue(GetNextOutputAsString() == "STRIP");
+					if (GetNextOutputAsString() != "STRIP") throw new Exception("Expected 'STRIP'");
 					break;
 
 				default:
@@ -410,66 +435,67 @@ namespace MatterHackers.Agg.Tests
 			}
 		}
 
-		public int CombineCallBack(double[] coords3, int[] data4, double[] weight4)
+		private int CombineCallBack(double[] coords3, int[] data4, double[] weight4)
 		{
-			double error = .001;
-			Assert.IsTrue(GetNextOutputAsString() == "C");
-			Assert.AreEqual(GetNextOutputAsDouble(), coords3[0], error);
-			Assert.AreEqual(GetNextOutputAsDouble(), coords3[1], error);
-			Assert.AreEqual(GetNextOutputAsInt(), data4[0]);
-			Assert.AreEqual(GetNextOutputAsInt(), data4[1]);
-			Assert.AreEqual(GetNextOutputAsInt(), data4[2]);
-			Assert.AreEqual(GetNextOutputAsInt(), data4[3]);
-			Assert.AreEqual(GetNextOutputAsDouble(), weight4[0], error);
-			Assert.AreEqual(GetNextOutputAsDouble(), weight4[1], error);
-			Assert.AreEqual(GetNextOutputAsDouble(), weight4[2], error);
-			Assert.AreEqual(GetNextOutputAsDouble(), weight4[3], error);
+			if (GetNextOutputAsString() != "C") throw new Exception("Expected 'C'");
+			if (!AreApproximatelyEqual(coords3[0], GetNextOutputAsDouble())) throw new Exception("coords3[0] mismatch");
+			if (!AreApproximatelyEqual(coords3[1], GetNextOutputAsDouble())) throw new Exception("coords3[1] mismatch");
+			if (data4[0] != GetNextOutputAsInt()) throw new Exception("data4[0] mismatch");
+			if (data4[1] != GetNextOutputAsInt()) throw new Exception("data4[1] mismatch");
+			if (data4[2] != GetNextOutputAsInt()) throw new Exception("data4[2] mismatch");
+			if (data4[3] != GetNextOutputAsInt()) throw new Exception("data4[3] mismatch");
+			if (!AreApproximatelyEqual(weight4[0], GetNextOutputAsDouble())) throw new Exception("weight4[0] mismatch");
+			if (!AreApproximatelyEqual(weight4[1], GetNextOutputAsDouble())) throw new Exception("weight4[1] mismatch");
+			if (!AreApproximatelyEqual(weight4[2], GetNextOutputAsDouble())) throw new Exception("weight4[2] mismatch");
+			if (!AreApproximatelyEqual(weight4[3], GetNextOutputAsDouble())) throw new Exception("weight4[3] mismatch");
 
 			VertexList.Add(new Vertex(coords3[0], coords3[1]));
-			return VertexList.Count-1;
+			return VertexList.Count - 1;
 		}
 
-		public void EdgeFlagCallBack(bool IsEdge)
+		private void EdgeFlagCallBack(bool IsEdge)
 		{
-			Assert.IsTrue(GetNextOutputAsString() == "F");
-			Assert.AreEqual(GetNextOutputAsBool(), IsEdge);
+			if (GetNextOutputAsString() != "F") throw new Exception("Expected 'F'");
+			if (IsEdge != GetNextOutputAsBool()) throw new Exception("IsEdge mismatch");
 		}
 
-		public void EndCallBack()
+		private void EndCallBack()
 		{
-			Assert.IsTrue(GetNextOutputAsString() == "E");
+			if (GetNextOutputAsString() != "E") throw new Exception("Expected 'E'");
 		}
 
 		[Test]
-		public void MatchesGLUTesselator()
+		public Task MatchesGLUTesselator()
 		{
-			for (CurrentInputTest = 0; CurrentInputTest < InsructionStream.Length; CurrentInputTest++)
+			for (int currentInputTest = 0; currentInputTest < InsructionStream.Length; currentInputTest++)
 			{
-				RunTest(CurrentInputTest, Tesselator.WindingRuleType.Odd, false);
+				RunTest(currentInputTest, Tesselator.WindingRuleType.Odd, false);
 				CurrentOutputTest++;
-				RunTest(CurrentInputTest, Tesselator.WindingRuleType.NonZero, false);
+				RunTest(currentInputTest, Tesselator.WindingRuleType.NonZero, false);
 				CurrentOutputTest++;
-				RunTest(CurrentInputTest, Tesselator.WindingRuleType.Positive, false);
+				RunTest(currentInputTest, Tesselator.WindingRuleType.Positive, false);
 				CurrentOutputTest++;
-				RunTest(CurrentInputTest, Tesselator.WindingRuleType.Negative, false);
+				RunTest(currentInputTest, Tesselator.WindingRuleType.Negative, false);
 				CurrentOutputTest++;
-				RunTest(CurrentInputTest, Tesselator.WindingRuleType.ABS_GEQ_Two, false);
+				RunTest(currentInputTest, Tesselator.WindingRuleType.ABS_GEQ_Two, false);
 				CurrentOutputTest++;
 
-				RunTest(CurrentInputTest, Tesselator.WindingRuleType.Odd, true);
+				RunTest(currentInputTest, Tesselator.WindingRuleType.Odd, true);
 				CurrentOutputTest++;
-				RunTest(CurrentInputTest, Tesselator.WindingRuleType.NonZero, true);
+				RunTest(currentInputTest, Tesselator.WindingRuleType.NonZero, true);
 				CurrentOutputTest++;
-				RunTest(CurrentInputTest, Tesselator.WindingRuleType.Positive, true);
+				RunTest(currentInputTest, Tesselator.WindingRuleType.Positive, true);
 				CurrentOutputTest++;
-				RunTest(CurrentInputTest, Tesselator.WindingRuleType.Negative, true);
+				RunTest(currentInputTest, Tesselator.WindingRuleType.Negative, true);
 				CurrentOutputTest++;
-				RunTest(CurrentInputTest, Tesselator.WindingRuleType.ABS_GEQ_Two, true);
+				RunTest(currentInputTest, Tesselator.WindingRuleType.ABS_GEQ_Two, true);
 				CurrentOutputTest++;
 			}
+
+			return Task.CompletedTask;
 		}
 
-		public void ParseStreamForTesselator(Tesselate.Tesselator tesselator, int instructionStreamIndex)
+		private void ParseStreamForTesselator(Tesselate.Tesselator tesselator, int instructionStreamIndex)
 		{
 			VertexList.Clear();
 			CurrentOutput = 0;
@@ -512,10 +538,10 @@ namespace MatterHackers.Agg.Tests
 			}
 		}
 
-		public void VertexCallBack(int index)
+		private void VertexCallBack(int index)
 		{
-			Assert.IsTrue(GetNextOutputAsString() == "V");
-			Assert.AreEqual(GetNextOutputAsInt(), index);
+			if (GetNextOutputAsString() != "V") throw new Exception("Expected 'V'");
+			if (index != GetNextOutputAsInt()) throw new Exception("index mismatch");
 		}
 
 		private bool GetNextOutputAsBool()
@@ -526,7 +552,7 @@ namespace MatterHackers.Agg.Tests
 				return true;
 			}
 
-			Assert.AreEqual(asDouble, 0);
+			if (asDouble != 0.0) throw new Exception("asDouble not 0.0");
 
 			return false;
 		}
@@ -539,7 +565,7 @@ namespace MatterHackers.Agg.Tests
 		private int GetNextOutputAsInt()
 		{
 			double asDouble = Convert.ToDouble(GetNextOutputAsString());
-			Assert.AreEqual((int)asDouble, asDouble);
+			if (asDouble != (int)asDouble) throw new Exception("asDouble not integer");
 			return (int)asDouble;
 		}
 
@@ -552,7 +578,7 @@ namespace MatterHackers.Agg.Tests
 
 		private void RunTest(int instructionStreamIndex, Tesselator.WindingRuleType windingRule, bool setEdgeFlag)
 		{
-			Tesselate.Tesselator tesselator = new Tesselate.Tesselator();
+			Tesselator tesselator = new Tesselator();
 			tesselator.callBegin += BeginCallBack;
 			tesselator.callEnd += EndCallBack;
 			tesselator.callVertex += VertexCallBack;

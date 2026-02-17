@@ -91,12 +91,30 @@ namespace MatterHackers.RayTracer
 
 		public AxisAlignedBoundingBox GetAxisAlignedBoundingBox()
 		{
-			if (cachedAABB.MinXYZ.X == double.NegativeInfinity)
+			if ((double.IsInfinity(cachedAABB.MinXYZ.X) || double.IsNaN(cachedAABB.MinXYZ.X))
+				&& Items.Count > 0)
 			{
-				cachedAABB = Items[0].GetAxisAlignedBoundingBox();
-				for (int i = 1; i < Items.Count; i++)
+				var first = true;
+				for (int i = 0; i < Items.Count; i++)
 				{
-					cachedAABB += Items[i].GetAxisAlignedBoundingBox();
+					if (Items[i] == null)
+					{
+						continue;
+					}
+
+					var itemAABB = Items[i].GetAxisAlignedBoundingBox();
+					if (!double.IsInfinity(itemAABB.MinXYZ.X) && !double.IsNaN(itemAABB.MinXYZ.X))
+					{
+						if (first)
+						{
+							first = false;
+							cachedAABB = Items[i].GetAxisAlignedBoundingBox();
+						}
+						else
+						{
+							cachedAABB += Items[i].GetAxisAlignedBoundingBox();
+						}
+					}
 				}
 			}
 
@@ -118,7 +136,7 @@ namespace MatterHackers.RayTracer
 			IntersectInfo bestInfo = null;
 			foreach (var item in Items)
 			{
-				IntersectInfo info = item.GetClosestIntersection(ray);
+				IntersectInfo info = item?.GetClosestIntersection(ray);
 				if (info != null && info.HitType != IntersectionType.None && info.DistanceToHit >= 0)
 				{
 					if (bestInfo == null || info.DistanceToHit < bestInfo.DistanceToHit)

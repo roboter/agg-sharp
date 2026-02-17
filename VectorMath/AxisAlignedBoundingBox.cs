@@ -138,6 +138,17 @@ namespace MatterHackers.VectorMath
 			return new AxisAlignedBoundingBox(newMin, newMax);
 		}
 
+        public void ExpandToInclude(AxisAlignedBoundingBox other)
+        {
+			this.MinXYZ.X = Math.Min(this.MinXYZ.X, other.MinXYZ.X);
+			this.MinXYZ.Y = Math.Min(this.MinXYZ.Y, other.MinXYZ.Y);
+			this.MinXYZ.Z = Math.Min(this.MinXYZ.Z, other.MinXYZ.Z);
+
+			this.MaxXYZ.X = Math.Max(this.MaxXYZ.X, other.MaxXYZ.X);
+			this.MaxXYZ.Y = Math.Max(this.MaxXYZ.Y, other.MaxXYZ.Y);
+			this.MaxXYZ.Z = Math.Max(this.MaxXYZ.Z, other.MaxXYZ.Z);
+		}
+
 		public void Expand(double amount)
 		{
 			MinXYZ.X -= amount;
@@ -147,6 +158,27 @@ namespace MatterHackers.VectorMath
 			MaxXYZ.X += amount;
 			MaxXYZ.Y += amount;
 			MaxXYZ.Z += amount;
+		}
+
+        public AxisAlignedBoundingBox GetIntersection(AxisAlignedBoundingBox other)
+        {
+			var intersection = new AxisAlignedBoundingBox();
+			intersection.MinXYZ.X = Math.Max(this.MinXYZ.X, other.MinXYZ.X);
+			intersection.MinXYZ.Y = Math.Max(this.MinXYZ.Y, other.MinXYZ.Y);
+			intersection.MinXYZ.Z = Math.Max(this.MinXYZ.Z, other.MinXYZ.Z);
+
+			intersection.MaxXYZ.X = Math.Min(this.MaxXYZ.X, other.MaxXYZ.X);
+			intersection.MaxXYZ.Y = Math.Min(this.MaxXYZ.Y, other.MaxXYZ.Y);
+			intersection.MaxXYZ.Z = Math.Min(this.MaxXYZ.Z, other.MaxXYZ.Z);
+
+			if (intersection.MinXYZ.X >= intersection.MaxXYZ.X
+				|| intersection.MinXYZ.Y >= intersection.MaxXYZ.Y
+				|| intersection.MinXYZ.Z >= intersection.MaxXYZ.Z)
+            {
+				return AxisAlignedBoundingBox.Zero();
+            }
+
+			return intersection;
 		}
 
 		public void Expand(double x, double y, double z)
@@ -440,5 +472,37 @@ namespace MatterHackers.VectorMath
 		{
 			return string.Format("min {0} - max {1}", MinXYZ, MaxXYZ);
 		}
-	}
+
+		private bool ValidDouble(double value, double largestPossibleValue)
+		{
+			return !double.IsNaN(value) && Math.Abs(value) < largestPossibleValue;
+		}
+
+		private bool ValidVector(Vector3 vector, double largestPossibleValue)
+		{
+			return ValidDouble(vector.X, largestPossibleValue) && ValidDouble(vector.Y, largestPossibleValue) && ValidDouble(vector.Z, largestPossibleValue);
+		}
+
+        public bool Valid(double largestPossibleValue)
+        {
+			return ValidVector(MinXYZ, largestPossibleValue) && ValidVector(MaxXYZ, largestPossibleValue);
+        }
+
+        public int GetLargestAxis()
+        {
+            Vector3 size = Size;
+            if (size.X > size.Y && size.X > size.Z)
+            {
+                return 0;
+            }
+            else if (size.Y > size.Z)
+            {
+                return 1;
+            }
+            else
+            {
+                return 2;
+            }
+        }
+    }
 }

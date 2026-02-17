@@ -1,5 +1,5 @@
 ﻿/*
-Copyright (c) 2015, Lars Brubaker
+Copyright (c) 2025, Lars Brubaker
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@ either expressed or implied, of the FreeBSD Project.
 
 using System.Collections.Generic;
 using ClipperLib;
+using MatterHackers.Agg;
 using MatterHackers.Agg.VertexSource;
 using MatterHackers.PolygonMesh.Processors;
 using MatterHackers.RayTracer;
@@ -36,9 +37,12 @@ using MatterHackers.VectorMath;
 
 namespace MatterHackers.PolygonMesh.Csg
 {
+    using Polygon = List<IntPoint>;
+    using Polygons = List<List<IntPoint>>;
+    
 	public static class SliceLayer
 	{
-		public static List<List<IntPoint>> GetPolygonXYLoopsAt0(this Mesh mesh, Matrix4X4 matrix, double outputScale = 1000)
+		public static Polygons GetPolygonXYLoopsAt0(this Mesh mesh, Matrix4X4 matrix, double outputScale = 1000)
 		{
 			var slicePlane = new Plane(Vector3.UnitZ, 0);
 
@@ -51,26 +55,34 @@ namespace MatterHackers.PolygonMesh.Csg
 			return CreateSlice(mesh, planeInMeshSpace);
 		}
 
-		public static List<List<IntPoint>> CreateSlice(Mesh mesh, Plane plane, int outputScale = 1000, bool includeBehindThePlane = true)
+		public static Polygons CreateSlice(Mesh mesh, Plane plane, int outputScale = 1000, bool includeBehindThePlane = true)
 		{
-			var transformTo0Plane = GetTransformTo0Plane(plane, outputScale);
+			var planeTransformToXy = GetTransformToXy(plane, outputScale);
 
-			return CreateSlice(mesh, plane, transformTo0Plane, null, includeBehindThePlane);
+			return CreateSlice(mesh, plane, planeTransformToXy, null, includeBehindThePlane);
 		}
 
-        public static List<List<IntPoint>> CreateSlice(Mesh mesh,
+        public static Polygons CreateSlice(Mesh mesh,
 			Plane plane,
-			Matrix4X4 transformTo0Plane,
+			Matrix4X4 planeTransformToXy,
 			IBvhItem acccelerator = null,
 			bool includeBehindThePlane = true)
 		{
-			var unorderedSegments = GetUnorderdSegments(mesh, plane, transformTo0Plane, acccelerator, includeBehindThePlane);
+			List<Segment> unorderedSegments;
+
+            using (new ReportTimer("SliceLayer_CreateSlice_GetUnorderSegments"))
+			{
+                unorderedSegments = GetUnorderdSegments(mesh, plane, planeTransformToXy, acccelerator, includeBehindThePlane);
+            }
 
 			// connect all the segments together into polygons
-			return FindClosedPolygons(unorderedSegments);
+			using (new ReportTimer("SliceLayer_CreateSlice_FindClosedPolygons"))
+			{
+				return FindClosedPolygons(unorderedSegments);
+			}
 		}
 
-		public static List<List<IntPoint>> UnionClosedPolygons(List<List<IntPoint>> closedPolygons)
+		public static Polygons UnionClosedPolygons(Polygons closedPolygons)
 		{
 			if (closedPolygons.Count > 1)
 			{
@@ -86,14 +98,14 @@ namespace MatterHackers.PolygonMesh.Csg
 		/// <param name="plane">The plane to transform from</param>
 		/// <param name="outputScale">The amout to scale up when transforming</param>
 		/// <returns>The plane to accomplish the transform</returns>
-        public static Matrix4X4 GetTransformTo0Plane(Plane plane, int outputScale = 1000)
+        public static Matrix4X4 GetTransformToXy(Plane plane, int outputScale = 1000)
         {
             var rotation = new Quaternion(plane.Normal, Vector3.UnitZ);
             var flattenedMatrix = Matrix4X4.CreateRotation(rotation);
             flattenedMatrix *= Matrix4X4.CreateTranslation(0, 0, -plane.DistanceFromOrigin);
 
-            var transformTo0Plane = flattenedMatrix * Matrix4X4.CreateScale(outputScale);
-            return transformTo0Plane;
+            var planeTransformToXy = flattenedMatrix * Matrix4X4.CreateScale(outputScale);
+            return planeTransformToXy;
         }
 
 		public static Matrix4X4 GetFlattenedMatrix(Plane cutPlane)
@@ -107,7 +119,7 @@ namespace MatterHackers.PolygonMesh.Csg
 
 		public static List<Segment> GetUnorderdSegments(Mesh mesh, Plane plane, IBvhItem acccelerator = null, bool includeBehindThePlane = true)
 		{
-			return GetUnorderdSegments(mesh, plane, GetTransformTo0Plane(plane), acccelerator, includeBehindThePlane);
+			return GetUnorderdSegments(mesh, plane, GetTransformToXy(plane), acccelerator, includeBehindThePlane);
 		}
 
 		public static List<Segment> GetUnorderdSegments(Mesh mesh,
@@ -175,14 +187,14 @@ namespace MatterHackers.PolygonMesh.Csg
 			return unorderedSegments;
 		}
 
-		public static List<List<IntPoint>> FindClosedPolygons(List<Segment> UnorderedSegments)
+		public static Polygons FindClosedPolygons(List<Segment> UnorderedSegments)
 		{
 			var startIndexes = CreateFastIndexLookup(UnorderedSegments);
 
 			var segmentHasBeenAdded = new bool[UnorderedSegments.Count];
 
-			var openPolygonList = new List<List<IntPoint>>();
-			var closedPolygons = new List<List<IntPoint>>();
+			var openPolygonList = new Polygons();
+			var closedPolygons = new Polygons();
 
 			for (int startingSegmentIndex = 0; startingSegmentIndex < UnorderedSegments.Count; startingSegmentIndex++)
 			{
@@ -191,7 +203,7 @@ namespace MatterHackers.PolygonMesh.Csg
 					continue;
 				}
 
-				var poly = new List<IntPoint>();
+				var poly = new Polygon();
 				// We start by adding the start, as we will add ends from now on.
 				var polygonStartPosition = UnorderedSegments[startingSegmentIndex].Start;
 				poly.Add(polygonStartPosition);
@@ -347,7 +359,7 @@ namespace MatterHackers.PolygonMesh.Csg
 
 				if (bestA == bestB) // This loop connects to itself, close the polygon.
 				{
-					closedPolygons.Add(new List<IntPoint>(openPolygonList[bestA]));
+					closedPolygons.Add(new Polygon(openPolygonList[bestA]));
 					openPolygonList[bestA].Clear(); // B is cleared as it is A
 					endSorter.Remove(bestA);
 					startSorter.Remove(bestA);
@@ -458,7 +470,7 @@ namespace MatterHackers.PolygonMesh.Csg
 
 	public static class IntPointPolygonsExtensions
 	{
-		public static IEnumerable<VertexData> AsVertices(this List<List<IntPoint>> polygons, double outputScale = 1000)
+		public static IEnumerable<VertexData> AsVertices(this Polygons polygons, double outputScale = 1000)
 		{
 			foreach (var polygon in polygons)
 			{
@@ -475,20 +487,20 @@ namespace MatterHackers.PolygonMesh.Csg
 
 	public static class IntPointPolygonExtensions
 	{
-		public static IEnumerable<VertexData> AsVertices(this List<IntPoint> polygon, double outputScale = 1000)
+		public static IEnumerable<VertexData> AsVertices(this Polygon polygon, double outputScale = 1000)
 		{
 			// start at the last point
-			yield return new VertexData(Agg.ShapePath.FlagsAndCommand.MoveTo,
+			yield return new VertexData(Agg.FlagsAndCommand.MoveTo,
 				new Vector2(polygon[polygon.Count - 1].X / outputScale, polygon[polygon.Count - 1].Y / outputScale));
 
 			for (int i = 0; i < polygon.Count; i++)
 			{
-				yield return new VertexData(Agg.ShapePath.FlagsAndCommand.LineTo,
+				yield return new VertexData(Agg.FlagsAndCommand.LineTo,
 					new Vector2(polygon[i].X / outputScale, polygon[i].Y / outputScale));
 			}
 		}
 
-		public static double Area(this List<IntPoint> polygon)
+		public static double Area(this Polygon polygon)
 		{
 			var count = polygon.Count;
 

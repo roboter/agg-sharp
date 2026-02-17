@@ -82,26 +82,31 @@ namespace MatterHackers.PolygonMesh.Csg
 			comparer = new Dictionary<int, Dictionary<int, Dictionary<int, List<Plane>>>>();
 			foreach (var plane in inputPlanes)
             {
-                var voxelIndex = new VoxelIndex(plane.Normal, normalErrorValue);
+                AddPlaneToComparer(plane, normalErrorValue);
+            }
+        }
 
-				if (!comparer.ContainsKey(voxelIndex.X))
-				{
-					comparer[voxelIndex.X] = new Dictionary<int, Dictionary<int, List<Plane>>>();
-				}
-				if (!comparer[voxelIndex.X].ContainsKey(voxelIndex.Y))
-				{
-					comparer[voxelIndex.X][voxelIndex.Y] = new Dictionary<int, List<Plane>>();
-				}
-				if (!comparer[voxelIndex.X][voxelIndex.Y].ContainsKey(voxelIndex.Z))
-				{
-					comparer[voxelIndex.X][voxelIndex.Y][voxelIndex.Z] = new List<Plane>();
-				}
+        public void AddPlaneToComparer(Plane plane, double normalErrorValue = .0001)
+        {
+            var voxelIndex = new VoxelIndex(plane.Normal, normalErrorValue);
 
-				comparer[voxelIndex.X][voxelIndex.Y][voxelIndex.Z].Add(plane);
-			}
-		}
+            if (!comparer.ContainsKey(voxelIndex.X))
+            {
+                comparer[voxelIndex.X] = new Dictionary<int, Dictionary<int, List<Plane>>>();
+            }
+            if (!comparer[voxelIndex.X].ContainsKey(voxelIndex.Y))
+            {
+                comparer[voxelIndex.X][voxelIndex.Y] = new Dictionary<int, List<Plane>>();
+            }
+            if (!comparer[voxelIndex.X][voxelIndex.Y].ContainsKey(voxelIndex.Z))
+            {
+                comparer[voxelIndex.X][voxelIndex.Y][voxelIndex.Z] = new List<Plane>();
+            }
 
-		private IEnumerable<int> GetSearch(VoxelIndex voxelIndex, int axis)
+            comparer[voxelIndex.X][voxelIndex.Y][voxelIndex.Z].Add(plane);
+        }
+
+        private IEnumerable<int> GetSearch(VoxelIndex voxelIndex, int axis)
 		{
 			if (axis == 0)
 			{
@@ -188,8 +193,11 @@ namespace MatterHackers.PolygonMesh.Csg
         private double normalErrorValue;
 
         public Plane? FindPlane(Plane searchPlane,
-			double distanceErrorValue = .01)
+			double distanceErrorValue = .01,
+			double normalErrorValueOverride = -1)
 		{
+			var currentNormalError = (normalErrorValueOverride == -1) ? this.normalErrorValue : normalErrorValueOverride;
+
 			var allPlanes = FindPlanes(searchPlane.Normal);
 
 			// first check if we have already found a plane that can match
@@ -197,7 +205,7 @@ namespace MatterHackers.PolygonMesh.Csg
 			{
 				if (firstFoundPlanes.Contains(plane))
 				{
-					if (plane.Equals(searchPlane, distanceErrorValue, normalErrorValue))
+					if (plane.Equals(searchPlane, distanceErrorValue, currentNormalError))
 					{
 						return plane;
 					}
@@ -209,17 +217,17 @@ namespace MatterHackers.PolygonMesh.Csg
 			{
 				foreach (var plane in firstFoundPlanes)
 				{
-					if (plane.Equals(searchPlane, distanceErrorValue, normalErrorValue))
+					if (plane.Equals(searchPlane, distanceErrorValue, currentNormalError))
 					{
 						return plane;
 					}
 				}
-            }
+			}
 
 			// 
 			foreach (var plane in allPlanes)
             {
-				if (plane.Equals(searchPlane, distanceErrorValue, normalErrorValue))
+				if (plane.Equals(searchPlane, distanceErrorValue, currentNormalError))
 				{
 					firstFoundPlanes.Add(plane);
 					return plane;

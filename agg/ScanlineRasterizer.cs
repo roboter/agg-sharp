@@ -32,8 +32,8 @@
 //----------------------------------------------------------------------------
 using MatterHackers.Agg.VertexSource;
 using MatterHackers.VectorMath;
-using filling_rule_e = MatterHackers.Agg.agg_basics.filling_rule_e;
-using poly_subpixel_scale_e = MatterHackers.Agg.agg_basics.poly_subpixel_scale_e;
+using filling_rule_e = MatterHackers.Agg.Util.filling_rule_e;
+using poly_subpixel_scale_e = MatterHackers.Agg.Util.poly_subpixel_scale_e;
 
 namespace MatterHackers.Agg
 {
@@ -91,10 +91,10 @@ namespace MatterHackers.Agg
 
 	public sealed class ScanlineRasterizer : IRasterizer
 	{
-		private rasterizer_cells_aa m_outline;
+		private RasterizerCellsAa m_outline;
 		private VectorClipper m_VectorClipper;
 		private int[] m_gamma = new int[(int)aa_scale_e.aa_scale];
-		private agg_basics.filling_rule_e m_filling_rule;
+		private Util.filling_rule_e m_filling_rule;
 		private bool m_auto_close;
 		private int m_start_x;
 		private int m_start_y;
@@ -126,7 +126,7 @@ namespace MatterHackers.Agg
 		//--------------------------------------------------------------------
 		public ScanlineRasterizer(VectorClipper rasterizer_sl_clip)
 		{
-			m_outline = new rasterizer_cells_aa();
+			m_outline = new RasterizerCellsAa();
 			m_VectorClipper = rasterizer_sl_clip;
 			m_filling_rule = filling_rule_e.fill_non_zero;
 			m_auto_close = true;
@@ -189,7 +189,7 @@ namespace MatterHackers.Agg
 							   m_VectorClipper.upscale(x2), m_VectorClipper.upscale(y2));
 		}
 
-		public void filling_rule(agg_basics.filling_rule_e filling_rule)
+		public void filling_rule(Util.filling_rule_e filling_rule)
 		{
 			m_filling_rule = filling_rule;
 		}
@@ -204,7 +204,7 @@ namespace MatterHackers.Agg
 		{
 			for (int i = 0; i < (int)aa_scale_e.aa_scale; i++)
 			{
-				m_gamma[i] = (int)agg_basics.uround(gamma_function.GetGamma((double)(i) / (int)aa_scale_e.aa_mask) * (int)aa_scale_e.aa_mask);
+				m_gamma[i] = (int)Util.uround(gamma_function.GetGamma((double)(i) / (int)aa_scale_e.aa_mask) * (int)aa_scale_e.aa_mask);
 			}
 		}
 
@@ -265,19 +265,19 @@ namespace MatterHackers.Agg
 
 		private void AddVertex(VertexData vertexData)
 		{
-			if (ShapePath.is_move_to(vertexData.command))
+			if (ShapePath.IsMoveTo(vertexData.Command))
 			{
-				move_to_d(vertexData.position.X, vertexData.position.Y);
+				move_to_d(vertexData.Position.X, vertexData.Position.Y);
 			}
 			else
 			{
-				if (ShapePath.is_vertex(vertexData.command))
+				if (ShapePath.IsVertex(vertexData.Command))
 				{
-					line_to_d(vertexData.position.X, vertexData.position.Y);
+					line_to_d(vertexData.Position.X, vertexData.Position.Y);
 				}
 				else
 				{
-					if (ShapePath.is_close(vertexData.command))
+					if (ShapePath.IsClose(vertexData.Command))
 					{
 						close_polygon();
 					}
@@ -313,14 +313,14 @@ namespace MatterHackers.Agg
 			double x = 0;
 			double y = 0;
 
-			ShapePath.FlagsAndCommand PathAndFlags;
-			vs.rewind(0);
+			FlagsAndCommand PathAndFlags;
+			vs.Rewind(0);
 			if (m_outline.sorted())
 			{
 				reset();
 			}
 
-			while (!ShapePath.is_stop(PathAndFlags = vs.vertex(out x, out y)))
+			while (!ShapePath.IsStop(PathAndFlags = vs.Vertex(out x, out y)))
 			{
 				AddVertex(new VertexData(PathAndFlags, new Vector2(x, y)));
 			}
@@ -421,14 +421,14 @@ namespace MatterHackers.Agg
 
 				scanlineCache.ResetSpans();
 				int num_cells = (int)m_outline.scanline_num_cells(m_scan_y);
-				cell_aa[] cells;
+				PixelCellAa[] cells;
 				int Offset;
 				m_outline.scanline_cells(m_scan_y, out cells, out Offset);
 				int cover = 0;
 
 				while (num_cells != 0)
 				{
-					cell_aa cur_cell = cells[Offset];
+					PixelCellAa cur_cell = cells[Offset];
 					int x = cur_cell.x;
 					int area = cur_cell.area;
 					int alpha;

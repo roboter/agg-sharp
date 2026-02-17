@@ -1,5 +1,5 @@
-﻿/*
-Copyright (c) 2018, John Lewin
+/*
+Copyright (c) 2025, John Lewin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,13 +28,16 @@ either expressed or implied, of the FreeBSD Project.
 */
 
 using System.Diagnostics;
+using TUnit.Assertions;
+using TUnit.Core;
+using Agg.Tests.Agg;
 using MatterHackers.Agg.Image;
-using NUnit.Framework;
+using System.Threading.Tasks;
 
 namespace MatterHackers.Agg.UI.Tests
 {
-	[TestFixture, Category("Agg.UI")]
-	public class BorderTests
+    
+    public class BorderTests
 	{
 		private int borderSize = 1;
 		private static bool debugResult = false;
@@ -48,45 +51,45 @@ namespace MatterHackers.Agg.UI.Tests
 			All = 4
 		}
 
-		[Test]
-		public void BorderTestLeft()
+        [Test]
+        public async Task BorderTestLeft()
 		{
 			var border = new BorderDouble(left: borderSize);
 			var surface = DrawBorderOnSurface(border, "left");
 
-			AssertBorderWhereExpected(Regions.Left, border, surface);
+			await AssertBorderWhereExpected(Regions.Left, border, surface);
 		}
 
-		[Test]
-		public void BorderTestBottom()
+        [Test]
+        public async Task BorderTestBottom()
 		{
 			var border = new BorderDouble(bottom: borderSize);
 			var surface = DrawBorderOnSurface(border, "bottom");
 
-			AssertBorderWhereExpected(Regions.Bottom, border, surface);
+			await AssertBorderWhereExpected(Regions.Bottom, border, surface);
 		}
 
-		[Test]
-		public void BorderTestRight()
+        [Test]
+        public async Task BorderTestRight()
 		{
 			var border = new BorderDouble(right: borderSize);
 			var surface = DrawBorderOnSurface(border, "right");
 
-			AssertBorderWhereExpected(Regions.Right, border, surface);
+			await AssertBorderWhereExpected(Regions.Right, border, surface);
 		}
 
-		[Test]
-		public void BorderTestTop()
+        [Test]
+        public async Task BorderTestTop()
 		{
 			var border = new BorderDouble(top: borderSize);
 			var surface = DrawBorderOnSurface(border, "top");
 
-			AssertBorderWhereExpected(Regions.Top, border, surface);
+			await AssertBorderWhereExpected(Regions.Top, border, surface);
 		}
 
-		// Enable to visually debug
-		//[Test, Apartment(System.Threading.ApartmentState.STA)]
-		public void BorderTestsVisualizer()
+        // Enable to visually debug
+        //[Test]
+        public async Task BorderTestsVisualizer()
 		{
 			var systemWindow = new SystemWindow(700, 660)
 			{
@@ -94,7 +97,9 @@ namespace MatterHackers.Agg.UI.Tests
 				Padding = 25
 			};
 
-			var column = new FlowLayoutWidget(FlowDirection.TopToBottom)
+            SystemWindow.EnableAllowDrop = false;
+
+            var column = new FlowLayoutWidget(FlowDirection.TopToBottom)
 			{
 				HAnchor = HAnchor.Stretch,
 				VAnchor = VAnchor.Stretch,
@@ -200,7 +205,7 @@ namespace MatterHackers.Agg.UI.Tests
 			return graphics2D.DestImage;
 		}
 
-		private static void AssertBorderWhereExpected(Regions region, BorderDouble border, IImageByte imageBuffer)
+		private static async Task AssertBorderWhereExpected(Regions region, BorderDouble border, IImageByte imageBuffer)
 		{
 			RectangleDouble borderBounds = RectangleDouble.ZeroIntersection;
 
@@ -232,12 +237,12 @@ namespace MatterHackers.Agg.UI.Tests
 					bool shouldBeRed = borderBounds.Contains(new Point2D(x + .5, y + .5));
 					if (shouldBeRed)
 					{
-						Assert.AreEqual(Color.Red, pixel);
+						await Assert.That(pixel).IsEqualTo(Color.Red);
 
 					}
 					else
 					{
-						Assert.AreNotEqual(Color.Red, pixel);
+						await Assert.That(pixel).IsNotEqualTo(Color.Red);
 					}
 				}
 			}

@@ -68,7 +68,7 @@ namespace MatterHackers.Agg
 			VertexSource = vertexSource;
 		}
 
-		public void attach(IVertexSource vertexSource)
+		public void Attach(IVertexSource vertexSource)
 		{
 			VertexSource = vertexSource;
 		}
@@ -78,14 +78,24 @@ namespace MatterHackers.Agg
 			foreach (VertexData vertexData in VertexSource.Vertices())
 			{
 				VertexData transformedVertex = vertexData;
-				if (ShapePath.is_vertex(transformedVertex.command))
+				if (ShapePath.IsVertex(transformedVertex.Command))
 				{
-					var position = transformedVertex.position;
+					var position = transformedVertex.Position;
 					ApplayYWarp(ref position.X, ref position.Y);
-					transformedVertex.position = position;
+					transformedVertex.Position = position;
 				}
 				yield return transformedVertex;
 			}
+		}
+
+		public ulong GetLongHashCode(ulong hash = 14695981039346656037)
+		{
+			foreach (var vertex in this.Vertices())
+			{
+				hash = vertex.GetLongHashCode(hash);
+			}
+
+			return hash;
 		}
 
 		private void ApplayYWarp(ref double x, ref double y)
@@ -93,15 +103,15 @@ namespace MatterHackers.Agg
 			// do the actual warp
 		}
 
-		public void rewind(int path_id)
+		public void Rewind(int path_id)
 		{
-			VertexSource.rewind(path_id);
+			VertexSource.Rewind(path_id);
 		}
 
-		public ShapePath.FlagsAndCommand vertex(out double x, out double y)
+		public FlagsAndCommand Vertex(out double x, out double y)
 		{
-			ShapePath.FlagsAndCommand cmd = VertexSource.vertex(out x, out y);
-			if (ShapePath.is_vertex(cmd))
+			FlagsAndCommand cmd = VertexSource.Vertex(out x, out y);
+			if (ShapePath.IsVertex(cmd))
 			{
 				ApplayYWarp(ref x, ref y);
 			}

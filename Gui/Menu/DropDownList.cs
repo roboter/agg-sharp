@@ -115,9 +115,9 @@ namespace MatterHackers.Agg.UI
 			mainControlText = new TextWidget(noSelectionString, pointSize: pointSize, textColor: textColor)
 			{
 				AutoExpandBoundsToText = true,
-				VAnchor = VAnchor.Bottom | VAnchor.Fit,
+				VAnchor = VAnchor.Center | VAnchor.Fit,
 				HAnchor = HAnchor.Left | HAnchor.Fit,
-				Margin = new BorderDouble(10, 7, 7, 7),
+				Margin = new BorderDouble(10, 3, 7, 3),
 			};
 
 			AddChild(mainControlText);
@@ -128,7 +128,7 @@ namespace MatterHackers.Agg.UI
 			this.MenuItemsBorderWidth = 1;
 			this.MenuItemsBackgroundColor = Color.White;
 			this.MenuItemsBorderColor = borderColor;
-			this.MenuItemsPadding = new BorderDouble(10, 7, 7, 7);
+			this.MenuItemsPadding = new BorderDouble(10, 3, 7, 3);
 			this.MenuItemsBackgroundHoverColor = new Color("#EC6788FF");
 			this.MenuItemsTextHoverColor = Color.Black;
 			this.MenuItemsTextColor = Color.Black;
@@ -250,6 +250,26 @@ namespace MatterHackers.Agg.UI
 			}
 		}
 
+		public MenuItem CreateSeparator()
+		{
+			var menuItem = new MenuItem(new HorizontalLine(Color.Black)
+			{
+				Margin = new BorderDouble(8, 1),
+			});
+
+			// MenuItem is a long lived object that is added and removed to new containers whenever the
+			// menu is shown. To ensure that event registration is not duplicated, always remove before add
+			menuItem.Selected -= MenuItem_Clicked;
+			menuItem.Selected += MenuItem_Clicked;
+
+			MenuItems.Add(menuItem);
+
+            menuItem.MinimumSize = new Vector2(0, 3);
+			menuItem.Height = 3;
+
+			return menuItem;
+		}
+
 		public Color TextColor
 		{
 			get => mainControlText.TextColor;
@@ -358,7 +378,7 @@ namespace MatterHackers.Agg.UI
 				{
 					var gradientDistanceMinusBorder = (int)(gradientDistance - Border.Width);
 
-					gradientBackground = agg_basics.TrasparentToColorGradientX(
+					gradientBackground = Util.TrasparentToColorGradientX(
 						(int)(dropArrowBounds.Width + gradientDistanceMinusBorder),
 						(int)(this.LocalBounds.Height - Border.Height),
 						background,

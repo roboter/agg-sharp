@@ -25,11 +25,11 @@ namespace MatterHackers.Agg.VertexSource
 	//------------------------------------------------------------null_markers
 	public struct null_markers : IMarkers
 	{
-		public void remove_all()
+		public void Clear()
 		{
 		}
 
-		public void add_vertex(double x, double y, ShapePath.FlagsAndCommand unknown)
+		public void add_vertex(double x, double y, FlagsAndCommand unknown)
 		{
 		}
 
@@ -41,9 +41,9 @@ namespace MatterHackers.Agg.VertexSource
 		{
 		}
 
-		public ShapePath.FlagsAndCommand vertex(ref double x, ref double y)
+		public FlagsAndCommand vertex(ref double x, ref double y)
 		{
-			return ShapePath.FlagsAndCommand.Stop;
+			return FlagsAndCommand.Stop;
 		}
 	};
 
@@ -53,7 +53,7 @@ namespace MatterHackers.Agg.VertexSource
 		private IGenerator generator;
 		private IMarkers markers;
 		private status m_status;
-		private ShapePath.FlagsAndCommand m_last_cmd;
+		private FlagsAndCommand m_last_cmd;
 		private double m_start_x;
 		private double m_start_y;
 
@@ -74,7 +74,17 @@ namespace MatterHackers.Agg.VertexSource
 			m_status = status.initial;
 		}
 
-		public VertexSourceAdapter(IVertexSource vertexSource, IGenerator generator, IMarkers markers)
+        public ulong GetLongHashCode(ulong hash = 14695981039346656037)
+        {
+            foreach (var vertex in this.Vertices())
+            {
+                hash = vertex.GetLongHashCode(hash);
+            }
+
+            return hash;
+        }
+
+        public VertexSourceAdapter(IVertexSource vertexSource, IGenerator generator, IMarkers markers)
 			: this(vertexSource, generator)
 		{
 			this.markers = markers;
@@ -91,70 +101,70 @@ namespace MatterHackers.Agg.VertexSource
 
 		public IEnumerable<VertexData> Vertices()
 		{
-			rewind(0);
-			ShapePath.FlagsAndCommand command = ShapePath.FlagsAndCommand.Stop;
+			Rewind(0);
+			FlagsAndCommand command = FlagsAndCommand.Stop;
 			do
 			{
 				double x;
 				double y;
-				command = vertex(out x, out y);
+				command = Vertex(out x, out y);
 				yield return new VertexData(command, new Vector2(x, y));
-			} while (command != ShapePath.FlagsAndCommand.Stop);
+			} while (command != FlagsAndCommand.Stop);
 		}
 
-		public void rewind(int path_id)
+		public void Rewind(int path_id)
 		{
-			VertexSource.rewind(path_id);
+			VertexSource.Rewind(path_id);
 			m_status = status.initial;
 		}
 
-		public ShapePath.FlagsAndCommand vertex(out double x, out double y)
+		public FlagsAndCommand Vertex(out double x, out double y)
 		{
 			x = 0;
 			y = 0;
-			ShapePath.FlagsAndCommand command = ShapePath.FlagsAndCommand.Stop;
+			FlagsAndCommand command = FlagsAndCommand.Stop;
 			bool done = false;
 			while (!done)
 			{
 				switch (m_status)
 				{
 					case status.initial:
-						markers.remove_all();
-						m_last_cmd = VertexSource.vertex(out m_start_x, out m_start_y);
+						markers.Clear();
+						m_last_cmd = VertexSource.Vertex(out m_start_x, out m_start_y);
 						m_status = status.accumulate;
 						goto case status.accumulate;
 
 					case status.accumulate:
-						if (ShapePath.is_stop(m_last_cmd))
+						if (ShapePath.IsStop(m_last_cmd))
 						{
-							return ShapePath.FlagsAndCommand.Stop;
+							return FlagsAndCommand.Stop;
 						}
 
 						generator.RemoveAll();
-						generator.AddVertex(m_start_x, m_start_y, ShapePath.FlagsAndCommand.MoveTo);
-						markers.add_vertex(m_start_x, m_start_y, ShapePath.FlagsAndCommand.MoveTo);
+						generator.AddVertex(m_start_x, m_start_y, FlagsAndCommand.MoveTo);
+						markers.add_vertex(m_start_x, m_start_y, FlagsAndCommand.MoveTo);
 
 						for (; ; )
 						{
-							command = VertexSource.vertex(out x, out y);
+							command = VertexSource.Vertex(out x, out y);
 							//DebugFile.Print("x=" + x.ToString() + " y=" + y.ToString() + "\n");
-							if (ShapePath.is_vertex(command))
+							if (ShapePath.IsVertex(command))
 							{
 								m_last_cmd = command;
-								if (ShapePath.is_move_to(command))
+								if (ShapePath.IsMoveTo(command))
 								{
 									m_start_x = x;
 									m_start_y = y;
 									break;
 								}
 								generator.AddVertex(x, y, command);
-								markers.add_vertex(x, y, ShapePath.FlagsAndCommand.LineTo);
+								markers.add_vertex(x, y, FlagsAndCommand.LineTo);
 							}
 							else
 							{
-								if (ShapePath.is_stop(command))
+								if (ShapePath.IsStop(command))
 								{
-									m_last_cmd = ShapePath.FlagsAndCommand.Stop;
+									m_last_cmd = FlagsAndCommand.Stop;
 									break;
 								}
 								if (ShapePath.is_end_poly(command))
@@ -171,7 +181,7 @@ namespace MatterHackers.Agg.VertexSource
 					case status.generate:
 						command = generator.Vertex(ref x, ref y);
 						//DebugFile.Print("x=" + x.ToString() + " y=" + y.ToString() + "\n");
-						if (ShapePath.is_stop(command))
+						if (ShapePath.IsStop(command))
 						{
 							m_status = status.accumulate;
 							break;

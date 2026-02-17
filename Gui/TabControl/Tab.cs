@@ -34,12 +34,20 @@ namespace MatterHackers.Agg.UI
 {
 	public class TextTab : ThreeViewTab
 	{
-		public TextTab(TabPage tabPage, string internalTabName)
-			: this(tabPage, internalTabName, 12, Color.DarkGray, Color.White, Color.Black, Color.White)
-		{
-		}
+        private ThemeConfig theme;
 
-		public TextTab(TabPage tabPage, string internalTabName, double pointSize,
+        public TextTab(TabPage tabPage, string internalTabName)
+            : this(tabPage, internalTabName, 12, Color.Black, Color.White, Color.DarkGray, Color.White)
+        {
+        }
+
+        public TextTab(ThemeConfig theme, TabPage tabPage, string internalTabName)
+			: this(tabPage, internalTabName, theme.DefaultFontSize, theme.TextColor, Color.Transparent, theme.TextColor.WithAlpha(100), Color.Transparent)
+        {
+			this.theme = theme;
+        }
+
+        public TextTab(TabPage tabPage, string internalTabName, double pointSize,
 			Color selectedTextColor, Color selectedBackgroundColor,
 			Color normalTextColor, Color normalBackgroundColor, int fixedSize = 40, bool useUnderlineStyling = false)
 			: base(internalTabName, new GuiWidget(), new GuiWidget(), new GuiWidget(), tabPage)
@@ -47,14 +55,36 @@ namespace MatterHackers.Agg.UI
 			this.Padding = 0;
 			this.Margin = 0;
 
-			normalWidget.HAnchor = HAnchor.Fit;
-			normalWidget.Padding = new BorderDouble(10);
+			void SetValues(GuiWidget widget)
+			{
+                widget.HAnchor = HAnchor.Fit;
+                widget.VAnchor = VAnchor.Fit | VAnchor.Bottom;
+                widget.Margin = new BorderDouble(0, 0, 0, 5);
+                widget.Padding = new BorderDouble(10, 7, 10, 7);
+                widget.BackgroundOutlineWidth = 1;
+				widget.BorderColor = selectedTextColor;
+                widget.BackgroundRadius = new RadiusCorners(8, 8, 0, 0);
+            }
 
-			selectedWidget.HAnchor = HAnchor.Fit;
-			selectedWidget.Padding = new BorderDouble(10, 0);
+            SetValues(normalWidget);
+            SetValues(selectedWidget);
 
-			AddText(tabPage.Text, selectedWidget, selectedTextColor, selectedBackgroundColor, pointSize, true, fixedSize, useUnderlineStyling);
-			AddText(tabPage.Text, normalWidget, normalTextColor, normalBackgroundColor, pointSize, false, fixedSize, useUnderlineStyling);
+            AddText(tabPage.Text, selectedWidget, selectedTextColor, selectedBackgroundColor, pointSize, true, fixedSize, useUnderlineStyling);
+			var hideLineColor = Color.White;
+
+            selectedWidget.AfterDraw += (s, e) =>
+			{
+                if (theme != null)
+                {
+                    hideLineColor = theme.BackgroundColor;
+                }
+                
+				var bounds = selectedWidget.LocalBounds;
+
+				e.Graphics2D.FillRectangle(bounds.Left + 1, bounds.Bottom, bounds.Right - 1, bounds.Bottom + 3, hideLineColor);
+			};
+
+            AddText(tabPage.Text, normalWidget, normalTextColor, normalBackgroundColor, pointSize, false, fixedSize, useUnderlineStyling);
 
 			// Bind changes on TabPage.Text to ensure 
 			tabPage.TextChanged += (s, e) =>

@@ -1,5 +1,5 @@
 ﻿/*
-Copyright (c) 2014, Lars Brubaker
+Copyright (c) 2025, Lars Brubaker
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ using MatterHackers.Agg.VertexSource;
 using MatterHackers.DataConverters2D;
 using MatterHackers.PolygonMesh;
 using MatterHackers.VectorMath;
+using TriangleNet.Geometry;
 using Polygon = System.Collections.Generic.List<ClipperLib.IntPoint>;
 using Polygons = System.Collections.Generic.List<System.Collections.Generic.List<ClipperLib.IntPoint>>;
 
@@ -85,16 +86,14 @@ namespace MatterHackers.PolygonMesh.Processors
 				if (!isIdentity)
 				{
 					var matrix = inMatrix.Value;
-					meshToAddTo.CreateFace(new Vector3[] 
-					{ 
+					meshToAddTo.CreateFace(
 						new Vector3(v0, zHeight).Transform(matrix),
 						new Vector3(v1, zHeight).Transform(matrix), 
-						new Vector3(v2, zHeight).Transform(matrix)
-					});
+						new Vector3(v2, zHeight).Transform(matrix));
 				}
 				else
 				{
-					meshToAddTo.CreateFace(new Vector3[] { new Vector3(v0, zHeight), new Vector3(v1, zHeight), new Vector3(v2, zHeight) });
+					meshToAddTo.CreateFace(new Vector3(v0, zHeight), new Vector3(v1, zHeight), new Vector3(v2, zHeight));
 				}
 			}
 
@@ -148,20 +147,24 @@ namespace MatterHackers.PolygonMesh.Processors
 				polygons = polygons.GetCorrectedWinding();
 				var bounds = polygons.GetBounds();
 				bounds.Inflate(10);
-				// clip against x=0 left and right
-				var leftClip = new Polygon();
-				leftClip.Add(new IntPoint(0, bounds.Bottom));
-				leftClip.Add(new IntPoint(0, bounds.Top));
-				leftClip.Add(new IntPoint(bounds.Left, bounds.Top));
-				leftClip.Add(new IntPoint(bounds.Left, bounds.Bottom));
-				var rightStuff = polygons.Subtract(leftClip);
+                // clip against x=0 left and right
+                var leftClip = new Polygon
+                {
+                    new IntPoint(0, bounds.Bottom),
+                    new IntPoint(0, bounds.Top),
+                    new IntPoint(bounds.Left, bounds.Top),
+                    new IntPoint(bounds.Left, bounds.Bottom)
+                };
+                var rightStuff = polygons.Subtract(leftClip);
 
-				var rightClip = new Polygon();
-				rightClip.Add(new IntPoint(0, bounds.Top));
-				rightClip.Add(new IntPoint(0, bounds.Bottom));
-				rightClip.Add(new IntPoint(bounds.Right, bounds.Bottom));
-				rightClip.Add(new IntPoint(bounds.Right, bounds.Top));
-				var leftStuff = polygons.Subtract(rightClip);
+                var rightClip = new Polygon
+                {
+                    new IntPoint(0, bounds.Top),
+                    new IntPoint(0, bounds.Bottom),
+                    new IntPoint(bounds.Right, bounds.Bottom),
+                    new IntPoint(bounds.Right, bounds.Top)
+                };
+                var leftStuff = polygons.Subtract(rightClip);
 				// mirror left material across the origin
 				var leftAdd = leftStuff.Scale(-1, 1);
 				if (leftAdd.Count > 0)
@@ -243,7 +246,7 @@ namespace MatterHackers.PolygonMesh.Processors
 				}
 				else
 				{
-					extrudedVertexSource.Transform(Matrix4X4.CreateRotationY(angleStart));
+					extrudedVertexSource.Transform(Matrix4X4.CreateRotationY(angleEnd));
 				}
 
 				extrudedVertexSource.ReverseFaces();
@@ -270,10 +273,10 @@ namespace MatterHackers.PolygonMesh.Processors
 
 				if (vertexData.IsMoveTo)
 				{
-					firstPosition = new Vector3(vertexData.position.X, 0, vertexData.position.Y);
+					firstPosition = new Vector3(vertexData.Position.X, 0, vertexData.Position.Y);
 					if (!revolveAroundZ)
 					{
-						firstPosition = new Vector3(vertexData.position.X, vertexData.position.Y, 0);
+						firstPosition = new Vector3(vertexData.Position.X, vertexData.Position.Y, 0);
 					}
 
 					lastPosition = firstPosition;
@@ -282,10 +285,10 @@ namespace MatterHackers.PolygonMesh.Processors
 				if (vertexData.IsLineTo || vertexData.IsClose)
 				{
 
-					var currentPosition = new Vector3(vertexData.position.X, 0, vertexData.position.Y);
+					var currentPosition = new Vector3(vertexData.Position.X, 0, vertexData.Position.Y);
 					if (!revolveAroundZ)
 					{
-						currentPosition = new Vector3(vertexData.position.X, vertexData.position.Y, 0);
+						currentPosition = new Vector3(vertexData.Position.X, vertexData.Position.Y, 0);
 					}
 
 					if (vertexData.IsClose)
@@ -297,23 +300,19 @@ namespace MatterHackers.PolygonMesh.Processors
 					{
 						if (revolveAroundZ)
 						{
-							mesh.CreateFace(new Vector3[]
-							{
+							mesh.CreateFace(
 								Vector3Ex.Transform(currentPosition, Matrix4X4.CreateRotationZ(endAngle)),
 								Vector3Ex.Transform(currentPosition, Matrix4X4.CreateRotationZ(startAngle)),
 								Vector3Ex.Transform(lastPosition, Matrix4X4.CreateRotationZ(startAngle)),
-								Vector3Ex.Transform(lastPosition, Matrix4X4.CreateRotationZ(endAngle)),
-							});
+								Vector3Ex.Transform(lastPosition, Matrix4X4.CreateRotationZ(endAngle)));
 						}
 						else
 						{
-							mesh.CreateFace(new Vector3[]
-							{
+							mesh.CreateFace(
 								Vector3Ex.Transform(currentPosition, Matrix4X4.CreateRotationY(endAngle)),
 								Vector3Ex.Transform(currentPosition, Matrix4X4.CreateRotationY(startAngle)),
 								Vector3Ex.Transform(lastPosition, Matrix4X4.CreateRotationY(startAngle)),
-								Vector3Ex.Transform(lastPosition, Matrix4X4.CreateRotationY(endAngle)),
-							});
+								Vector3Ex.Transform(lastPosition, Matrix4X4.CreateRotationY(endAngle)));
 						}
 					}
 
@@ -322,65 +321,27 @@ namespace MatterHackers.PolygonMesh.Processors
 			}
 		}
 
-		public static Mesh Extrude(this IVertexSource vertexSourceIn,
+        public static Mesh Extrude(this IVertexSource vertexSourceIn,
 			double zHeightTop,
-			List<(double height, double insetAmount)> bevel = null)
+			List<(double height, double insetAmount)> bevel = null,
+			ClipperLib.JoinType joinType = JoinType.jtRound)
 		{
 			Polygons bottomPolygons = vertexSourceIn.CreatePolygons();
 
 			// ensure good winding and consistent shapes
 			bottomPolygons = bottomPolygons.GetCorrectedWinding();
 
-			var mesh = new Mesh();
-			
 			if (bevel != null)
 			{
-				// create the bottom polygon
-				var bottom = PathStitcher.Stitch(null, 0, bottomPolygons, 0);
-				mesh.CopyFaces(bottom);
-
-				var bottomLoop = bottomPolygons;
-				var bottomHeight = 0.0;
-				// create all the walls
-				var topLoop = bottomPolygons;
-				var topHeight = bevel[0].height;
-
-				int i = -1;
-				while (i < bevel.Count)
-				{
-					// add the top polygon
-					var walls = PathStitcher.Stitch(bottomLoop, bottomHeight, topLoop, topHeight);
-					mesh.CopyFaces(walls);
-					bottomLoop = topLoop;
-					bottomHeight = topHeight;
-
-					i++;
-					if (i < bevel.Count)
-					{
-						topLoop = bottomPolygons.Offset(bevel[i].insetAmount * 1000);
-						if (i == bevel.Count - 1)
-						{
-							topHeight = zHeightTop;
-						}
-						else
-						{
-							topHeight = bevel[i + 1].height;
-						}
-					}
-				}
-
-				// create the top polygon
-				var top = PathStitcher.Stitch(topLoop, zHeightTop, null, 0);
-				mesh.CopyFaces(top);
-				mesh.CleanAndMerge();
-				return mesh;
+				return GetLoopMesh(zHeightTop, bevel, bottomPolygons, joinType);
 			}
 
 			var bottomTeselatedSource = new CachedTesselator();
 
 			// add the top polygon
 			var vertexSourceBottom = bottomPolygons.CreateVertexStorage();
-			vertexSourceBottom.TriangulateFaces(bottomTeselatedSource, mesh);
+            var mesh = new Mesh();
+            vertexSourceBottom.TriangulateFaces(bottomTeselatedSource, mesh);
 			mesh.Translate(new Vector3(0, 0, zHeightTop));
 
 			int numIndicies = bottomTeselatedSource.IndicesCache.Count;
@@ -406,17 +367,17 @@ namespace MatterHackers.PolygonMesh.Processors
 
 				if (bottomTeselatedSource.IndicesCache[i + 0].IsEdge)
 				{
-					mesh.CreateFace(new Vector3[] { bottomVertex0, bottomVertex1, topVertex1, topVertex0 });
+					mesh.CreateFace(bottomVertex0, bottomVertex1, topVertex1, topVertex0);
 				}
 
 				if (bottomTeselatedSource.IndicesCache[i + 1].IsEdge)
 				{
-					mesh.CreateFace(new Vector3[] { bottomVertex1, bottomVertex2, topVertex2, topVertex1 });
+					mesh.CreateFace(bottomVertex1, bottomVertex2, topVertex2, topVertex1);
 				}
 
 				if (bottomTeselatedSource.IndicesCache[i + 2].IsEdge)
 				{
-					mesh.CreateFace(new Vector3[] { bottomVertex2, bottomVertex0, topVertex0, topVertex2 });
+					mesh.CreateFace(bottomVertex2, bottomVertex0, topVertex0, topVertex2);
 				}
 			}
 
@@ -431,12 +392,151 @@ namespace MatterHackers.PolygonMesh.Processors
 					continue;
 				}
 
-				mesh.CreateFace(new Vector3[] { new Vector3(v2, 0), new Vector3(v1, 0), new Vector3(v0, 0) });
+				mesh.CreateFace(new Vector3(v2, 0), new Vector3(v1, 0), new Vector3(v0, 0));
 			}
 
 			mesh.CleanAndMerge();
 
 			return mesh;
 		}
-	}
+
+		private static Mesh GetLoopMesh(double zHeightTop, List<(double height, double insetAmount)> bevel, Polygons inputPolygons, ClipperLib.JoinType joinType)
+		{
+            var bottomPolygonsSets = inputPolygons.SeparatePolygonGroups();
+
+            var mesh = new Mesh();
+            foreach (var bottomPolygons in bottomPolygonsSets)
+			{
+				// create the bottom polygon
+				var bottom = PathStitcher.Stitch(null, 0, bottomPolygons, 0);
+				mesh.CopyFaces(bottom);
+
+				var bottomLoops = bottomPolygons;
+				var bottomHeight = 0.0;
+				// create all the walls
+				var topLoops = bottomPolygons;
+				var topHeight = bevel.Count > 0 ? bevel[0].height : zHeightTop;
+
+                int i = -1;
+				while (i < bevel.Count)
+				{
+					var isSide = bottomLoops.Count > 0
+						&& bottomLoops.Count == topLoops.Count
+                        && bottomLoops[0].Count > 0
+                        && bottomLoops[0].Count == topLoops[0].Count
+						&& bottomLoops[0][0] == topLoops[0][0];
+
+                    if (isSide)
+					{
+						// add the top polygon
+						var walls = PathStitcher.Stitch(bottomLoops, bottomHeight, topLoops, topHeight);
+						mesh.CopyFaces(walls);
+					}
+					else
+                    {
+                        CreateTriangulation(mesh, bottomLoops, bottomHeight, topLoops, topHeight);
+                    }
+
+                    bottomLoops = topLoops;
+					bottomHeight = topHeight;
+
+					i++;
+					if (i < bevel.Count)
+					{
+						topLoops = bottomPolygons.Offset(bevel[i].insetAmount * 1000, joinType);
+						if (i == bevel.Count - 1)
+						{
+							topHeight = zHeightTop;
+						}
+						else
+						{
+							topHeight = bevel[i + 1].height;
+						}
+					}
+				}
+
+				// create the top polygon
+				var top = PathStitcher.Stitch(topLoops, zHeightTop, null, 0);
+				if (top != null)
+				{
+					mesh.CopyFaces(top);
+				}
+			}
+            
+			mesh.CleanAndMerge();
+			return mesh;
+		}
+
+        private static void CreateTriangulation(Mesh mesh, Polygons bottomLoops, double bottomHeight, Polygons topLoops, double topHeight)
+        {
+			// we want to fill the bottom and tho top using even odd winding rule
+            var hashSetBottomVertices = new HashSet<Vector2>();
+            foreach (var bottomLoop in bottomLoops)
+            {
+                foreach (var item in bottomLoop)
+                {
+                    hashSetBottomVertices.Add(new Vector2(item.X, item.Y));
+                }
+            }
+
+            var outlineLoops = new Polygons(bottomLoops);
+            outlineLoops.AddRange(topLoops);
+            var polyGroups = outlineLoops.SeparateIntoOutlinesAndContainedHoles();
+
+			foreach (var polyGroup in polyGroups)
+			{
+				if (polyGroup.Count > 0)
+				{
+					var holes = polyGroup.Skip(1).ToList();
+                    CreateMeshLoop(mesh, polyGroup[0], holes, bottomHeight, topHeight, hashSetBottomVertices);
+				}
+				else
+				{
+					var a = 0;
+				}
+			}
+        }
+
+        private static void CreateMeshLoop(Mesh mesh, Polygon outline, Polygons holes, double bottomHeight, double topHeight, HashSet<Vector2> hashSetBottomVertices)
+        {
+            var polygon = new TriangleNet.Geometry.Polygon();
+            polygon.Add(new TriangleNet.Geometry.Contour(outline.Select(p => new TriangleNet.Geometry.Vertex(p.X, p.Y))));
+
+            foreach (var topLoop in holes)
+            {
+                polygon.Add(new TriangleNet.Geometry.Contour(topLoop.Select(p => new TriangleNet.Geometry.Vertex(p.X, p.Y))), hole: true);
+            }
+
+            // Triangulate the polygon.
+            if (polygon.Count > 0)
+            {
+                var mesh2 = polygon.Triangulate();// options: new TriangleNet.Meshing.ConstraintOptions() { ConformingDelaunay = true });
+
+                // Add the triangles to the mesh
+                foreach (var triangle in mesh2.Triangles)
+                {
+                    var height = new double[3];
+                    for (int j = 0; j < 3; j++)
+                    {
+                        var vertex = new Vector2(triangle.GetVertex(j).X, triangle.GetVertex(j).Y);
+                        if (hashSetBottomVertices.Contains(vertex))
+                        {
+                            height[j] = bottomHeight;
+                        }
+                        else
+                        {
+                            height[j] = topHeight;
+                        }
+                    }
+
+                    mesh.CreateFace(new Vector3[]
+                    {
+                        new Vector3(triangle.GetVertex(0).X / 1000, triangle.GetVertex(0).Y / 1000, height[0]),
+                        new Vector3(triangle.GetVertex(1).X / 1000, triangle.GetVertex(1).Y / 1000, height[1]),
+                        new Vector3(triangle.GetVertex(2).X / 1000, triangle.GetVertex(2).Y / 1000, height[2]),
+                    });
+                }
+            }
+        }
+    }
 }

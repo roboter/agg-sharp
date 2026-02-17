@@ -149,7 +149,7 @@ namespace MatterHackers.Agg.UI
 			{
 				double xp = calc_xp(i);
 				double yp = calc_yp(i);
-				if (agg_math.calc_distance(x, y, xp, yp) <= m_point_size + 1)
+				if (agg_math.CalcDistance(x, y, xp, yp) <= m_point_size + 1)
 				{
 					m_pdx = xp - x;
 					m_pdy = yp - y;
@@ -295,15 +295,15 @@ namespace MatterHackers.Agg.UI
 		public override void OnDraw(Graphics2D graphics2D)
 		{
 			int index = 0;
-			rewind(index);
+			Rewind(index);
 			graphics2D.Render(this, m_background_color);
-			rewind(++index);
+			Rewind(++index);
 			graphics2D.Render(this, m_border_color);
-			rewind(++index);
+			Rewind(++index);
 			graphics2D.Render(this, m_curve_color);
-			rewind(++index);
+			Rewind(++index);
 			graphics2D.Render(this, m_inactive_pnt_color);
-			rewind(++index);
+			Rewind(++index);
 			graphics2D.Render(this, m_active_pnt_color);
 
 			base.OnDraw(graphics2D);
@@ -320,7 +320,7 @@ namespace MatterHackers.Agg.UI
 			throw new NotImplementedException();
 		}
 
-		public override void rewind(int idx)
+		public override void Rewind(int idx)
 		{
 			m_idx = idx;
 
@@ -363,75 +363,75 @@ namespace MatterHackers.Agg.UI
 				case 2:                 // Curve
 					calc_curve();
 					m_curve_poly.Width = m_curve_width;
-					m_curve_poly.rewind(0);
+					m_curve_poly.Rewind(0);
 					break;
 
 				case 3:                 // Inactive points
-					m_curve_pnt.remove_all();
+					m_curve_pnt.Clear();
 					for (int i = 0; i < m_num_pnt; i++)
 					{
 						if (i != m_active_pnt)
 						{
 							m_ellipse.init(calc_xp(i), calc_yp(i),
 										   m_point_size, m_point_size, 32);
-							m_curve_pnt.concat_path(m_ellipse);
+							m_curve_pnt.ConcatPath(m_ellipse);
 						}
 					}
-					m_curve_poly.rewind(0);
+					m_curve_poly.Rewind(0);
 					break;
 
 				case 4:                 // Active point
-					m_curve_pnt.remove_all();
+					m_curve_pnt.Clear();
 					if (m_active_pnt >= 0)
 					{
 						m_ellipse.init(calc_xp(m_active_pnt), calc_yp(m_active_pnt),
 									   m_point_size, m_point_size, 32);
 
-						m_curve_pnt.concat_path(m_ellipse);
+						m_curve_pnt.ConcatPath(m_ellipse);
 					}
-					m_curve_poly.rewind(0);
+					m_curve_poly.Rewind(0);
 					break;
 			}
 		}
 
-		public override ShapePath.FlagsAndCommand vertex(out double x, out double y)
+		public override FlagsAndCommand Vertex(out double x, out double y)
 		{
 			x = 0;
 			y = 0;
-			ShapePath.FlagsAndCommand cmd = ShapePath.FlagsAndCommand.LineTo;
+			FlagsAndCommand cmd = FlagsAndCommand.LineTo;
 			switch (m_idx)
 			{
 				case 0:
-					if (m_vertex == 0) cmd = ShapePath.FlagsAndCommand.MoveTo;
-					if (m_vertex >= 4) cmd = ShapePath.FlagsAndCommand.Stop;
+					if (m_vertex == 0) cmd = FlagsAndCommand.MoveTo;
+					if (m_vertex >= 4) cmd = FlagsAndCommand.Stop;
 					x = m_vx[m_vertex];
 					y = m_vy[m_vertex];
 					m_vertex++;
 					break;
 
 				case 1:
-					if (m_vertex == 0 || m_vertex == 4) cmd = ShapePath.FlagsAndCommand.MoveTo;
-					if (m_vertex >= 8) cmd = ShapePath.FlagsAndCommand.Stop;
+					if (m_vertex == 0 || m_vertex == 4) cmd = FlagsAndCommand.MoveTo;
+					if (m_vertex >= 8) cmd = FlagsAndCommand.Stop;
 					x = m_vx[m_vertex];
 					y = m_vy[m_vertex];
 					m_vertex++;
 					break;
 
 				case 2:
-					cmd = m_curve_poly.vertex(out x, out y);
+					cmd = m_curve_poly.Vertex(out x, out y);
 					break;
 
 				case 3:
 				case 4:
-					cmd = m_curve_pnt.vertex(out x, out y);
+					cmd = m_curve_pnt.Vertex(out x, out y);
 					break;
 
 				default:
-					cmd = ShapePath.FlagsAndCommand.Stop;
+					cmd = FlagsAndCommand.Stop;
 					break;
 			}
 
-			if (!ShapePath.is_stop(cmd))
+			if (!ShapePath.IsStop(cmd))
 			{
 				//OriginRelativeParentTransform.transform(ref x, ref y);
 			}
@@ -450,7 +450,7 @@ namespace MatterHackers.Agg.UI
 		private void calc_curve()
 		{
 			int i;
-			m_curve_pnt.remove_all();
+			m_curve_pnt.Clear();
 			m_curve_pnt.MoveTo(m_xs1, m_ys1 + (m_ys2 - m_ys1) * m_spline_values[0]);
 			for (i = 1; i < 256; i++)
 			{

@@ -1,5 +1,5 @@
 ﻿/*
-Copyright (c) 2014, Lars Brubaker
+Copyright (c) 2025, Lars Brubaker
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,6 @@ using MatterHackers.Agg.VertexSource;
 using MatterHackers.VectorMath;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace MatterHackers.MarchingSquares
 {
@@ -425,19 +424,12 @@ namespace MatterHackers.MarchingSquares
 			foreach (LineSegment lineSegment in LineSegments)
 			{
 				var m_LinesToDraw = new VertexStorage();
-				m_LinesToDraw.remove_all();
+				m_LinesToDraw.Clear();
 				m_LinesToDraw.MoveTo(lineSegment.start.X, lineSegment.start.Y);
 				m_LinesToDraw.LineTo(lineSegment.end.X, lineSegment.end.Y);
 				var StrockedLineToDraw = new Stroke(m_LinesToDraw, .25);
 				graphics2D.Render(StrockedLineToDraw, lineSegment.color);
 			}
-		}
-
-		public static void AssertDebugNotDefined()
-		{
-#if DEBUG
-			throw new Exception("DEBUG is defined and should not be!");
-#endif
 		}
 	}
 }

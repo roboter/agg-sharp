@@ -30,6 +30,7 @@ either expressed or implied, of the FreeBSD Project.
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using MatterHackers.Agg;
 using MatterHackers.PolygonMesh.Processors;
 using MatterHackers.VectorMath;
@@ -38,27 +39,30 @@ namespace MatterHackers.RayTracer
 {
 	public enum BvhCreationOptions
 	{
-		FavorFastConstruction,
-		FavorFastTracing
-	}
+		SingleUnboundCollection,
+		BottomUpClustering,
+        ParallelBinnedSah,
+        LocalOrderClustering
+    }
 
 	public class BoundingVolumeHierarchy : ITraceable
 	{
 		internal AxisAlignedBoundingBox Aabb;
-		private readonly ITraceable nodeA;
-		private readonly ITraceable nodeB;
+		public ITraceable Left { get; private set; }
+		public ITraceable Right { get; private set; }
 		private int splittingPlane;
 
 		public BoundingVolumeHierarchy()
 		{
 		}
 
-		public BoundingVolumeHierarchy(ITraceable nodeA, ITraceable nodeB, int splittingPlane)
-		{
-			this.splittingPlane = splittingPlane;
-			this.nodeA = nodeA;
-			this.nodeB = nodeB;
-			this.Aabb = nodeA.GetAxisAlignedBoundingBox() + nodeB.GetAxisAlignedBoundingBox(); // we can cache this because it is not allowed to change.
+		public BoundingVolumeHierarchy(ITraceable nodeA, ITraceable nodeB)
+        {
+			this.Left = nodeA;
+			this.Right = nodeB;
+			Aabb = nodeA.GetAxisAlignedBoundingBox() + nodeB.GetAxisAlignedBoundingBox();
+			splittingPlane = Aabb.XSize > Aabb.YSize ? 0 : 1;
+			splittingPlane = Aabb.Size[splittingPlane] > Aabb.ZSize ? splittingPlane : 2;
 		}
 
 		public MaterialAbstract Material
@@ -74,16 +78,23 @@ namespace MatterHackers.RayTracer
 			}
 		}
 
-        public IEnumerable<IBvhItem> Children => throw new NotImplementedException();
+        public IEnumerable<IBvhItem> Children
+        {
+			get
+			{
+				yield return Left;
+				yield return Right;
+			}
+        }
 
-        public Matrix4X4 AxisToWorld => throw new NotImplementedException();
+        public Matrix4X4 AxisToWorld => Matrix4X4.Identity;
 
 		public bool Contains(Vector3 position)
 		{
 			if (this.GetAxisAlignedBoundingBox().Contains(position))
 			{
-				if (nodeA.Contains(position)
-					|| nodeB.Contains(position))
+				if (Left.Contains(position)
+					|| Right.Contains(position))
 				{
 					return true;
 				}
@@ -101,7 +112,7 @@ namespace MatterHackers.RayTracer
 			}
 
 			int count = rayBundle.rayArray.Length;
-			// check if all bundle misses
+			// check if the bundle (the frustum) misses
 			if (!rayBundle.CheckIfBundleHitsAabb(Aabb))
 			{
 				return -1;
@@ -119,17 +130,82 @@ namespace MatterHackers.RayTracer
 			return -1;
 		}
 
-        public static ITraceable CreateNewHierachy(List<ITraceable> tracePrimitives, BvhCreationOptions bvhCreationOptions = BvhCreationOptions.FavorFastTracing)
+        public static void PrintBvh(ITraceable tracable, StreamWriter stream, int level = 0)
         {
-			switch(bvhCreationOptions)
+            string indent = "";
+            for (int i = 0; i < level; i++)
             {
-				case BvhCreationOptions.FavorFastConstruction:
-					return BvhBuilderLegacy.Create(tracePrimitives, 0);
+                indent += " ";
+            }
 
-				case BvhCreationOptions.FavorFastTracing:
-				default:
-					return BvhBuilderLegacy.Create(tracePrimitives);
+			if (tracable is UnboundCollection unboundCollection)
+			{
+				stream.WriteLine($"{indent}Collection: {unboundCollection.Items.Count}");
 			}
+			else if (tracable is BoundingVolumeHierarchy bvh)
+			{
+				stream.WriteLine($"{indent}BoundingVolumeHierarchy {bvh.GetAxisAlignedBoundingBox()}");
+				PrintBvh(bvh.Left, stream, level + 1);
+				PrintBvh(bvh.Right, stream, level + 1);
+			}
+			else if (tracable is MinimalTriangle minTri)
+			{
+				stream.WriteLine($"{indent}Tri: [{minTri.FaceIndex}] {tracable.GetAxisAlignedBoundingBox()}");
+			}
+			else
+			{
+				stream.WriteLine(indent + "Leaf: " + tracable.GetAxisAlignedBoundingBox());
+			}
+        }
+
+        public static void PrintBvh(ITraceable tracable, string file)
+        {
+            using (StreamWriter writer = new StreamWriter(file))
+            {
+                PrintBvh(tracable, writer);
+            }
+        }
+
+        public static ITraceable CreateNewHierarchy(List<ITraceable> tracePrimitives, BvhCreationOptions bvhCreationOptions = BvhCreationOptions.LocalOrderClustering)
+        {
+			ITraceable output = null;
+
+            switch (bvhCreationOptions)
+            {
+				case BvhCreationOptions.SingleUnboundCollection:
+					using (new QuickTimer("LegacyFastConstructionSlowTracing", 1))
+					{
+						output = new UnboundCollection(tracePrimitives);
+					}
+					break;
+
+				case BvhCreationOptions.BottomUpClustering:
+					using (new QuickTimer("LegacySlowConstructionFastTracing", .1))
+					{
+						output = BvhBuilderBottomUp.Create(tracePrimitives);
+					}
+					break;
+
+				case BvhCreationOptions.ParallelBinnedSah:
+                    using (new QuickTimer("BvhBuilderOptimized", .1))
+                    {
+                        output = BvhBuilderParallelBinnedSah.Create(tracePrimitives);
+                    }
+                    break;
+
+
+                case BvhCreationOptions.LocalOrderClustering:
+					using (new QuickTimer("LocFastContructionFastTracing", 1))
+					{
+						output = BvhBuilderLocallyOrderedClustering.Create(tracePrimitives);
+                    }
+					break;
+
+				default:
+					throw new NotImplementedException();
+			}
+
+			return output;
 		}
 
         public AxisAlignedBoundingBox GetAxisAlignedBoundingBox()
@@ -151,12 +227,12 @@ namespace MatterHackers.RayTracer
 		{
 			if (ray.Intersection(Aabb))
 			{
-				var checkFirst = nodeA;
-				var checkSecond = nodeB;
+				var checkFirst = Left;
+				var checkSecond = Right;
 				if (ray.directionNormal[splittingPlane] < 0)
 				{
-					checkFirst = nodeB;
-					checkSecond = nodeA;
+					checkFirst = Right;
+					checkSecond = Left;
 				}
 
 				IntersectInfo infoFirst = checkFirst.GetClosestIntersection(ray);
@@ -213,12 +289,12 @@ namespace MatterHackers.RayTracer
 			int startRayIndex = FindFirstRay(rayBundle, rayIndexToStartCheckingFrom);
 			if (startRayIndex != -1)
 			{
-				var checkFirst = nodeA;
-				var checkSecond = nodeB;
+				var checkFirst = Left;
+				var checkSecond = Right;
 				if (rayBundle.rayArray[startRayIndex].directionNormal[splittingPlane] < 0)
 				{
-					checkFirst = nodeB;
-					checkSecond = nodeA;
+					checkFirst = Right;
+					checkSecond = Left;
 				}
 
 				checkFirst.GetClosestIntersections(rayBundle, startRayIndex, intersectionsForBundle);
@@ -239,8 +315,8 @@ namespace MatterHackers.RayTracer
 			AxisAlignedBoundingBox bounds = GetAxisAlignedBoundingBox();
 			if (bounds.Contains(subRegion))
 			{
-				bool resultA = this.nodeA.GetContained(results, subRegion);
-				bool resultB = this.nodeB.GetContained(results, subRegion);
+				bool resultA = this.Left.GetContained(results, subRegion);
+				bool resultB = this.Right.GetContained(results, subRegion);
 				return resultA | resultB;
 			}
 
@@ -261,12 +337,12 @@ namespace MatterHackers.RayTracer
 		{
 			if (ray.Intersection(Aabb))
 			{
-				var checkFirst = nodeA;
-				var checkSecond = nodeB;
+				var checkFirst = Left;
+				var checkSecond = Right;
 				if (ray.directionNormal[splittingPlane] < 0)
 				{
-					checkFirst = nodeB;
-					checkSecond = nodeA;
+					checkFirst = Right;
+					checkSecond = Left;
 				}
 
 				foreach (IntersectInfo info in checkFirst.IntersectionIterator(ray))
@@ -295,11 +371,11 @@ namespace MatterHackers.RayTracer
 			AxisAlignedBoundingBox bounds = GetAxisAlignedBoundingBox();
 			if (plane.CrossedBy(bounds))
 			{
-				foreach(var item in this.nodeA.GetCrossing(plane))
+				foreach(var item in this.Left.GetCrossing(plane))
                 {
 					yield return item;
                 }
-				foreach (var item in this.nodeB.GetCrossing(plane))
+				foreach (var item in this.Right.GetCrossing(plane))
 				{
 					yield return item;
 				}
@@ -311,15 +387,34 @@ namespace MatterHackers.RayTracer
 			AxisAlignedBoundingBox bounds = GetAxisAlignedBoundingBox();
 			if (bounds.Contains(position, error))
 			{
-				foreach (var item in this.nodeA.GetTouching(position, error))
+				foreach (var item in this.Left.GetTouching(position, error))
 				{
 					yield return item;
 				}
-				foreach (var item in this.nodeB.GetTouching(position, error))
+				foreach (var item in this.Right.GetTouching(position, error))
 				{
 					yield return item;
 				}
 			}
 		}
-	}
+
+        public void SetNodes(ITraceable nodeA, ITraceable nodeB)
+        {
+            this.Left = nodeA;
+            this.Right = nodeB;
+
+            // Recalculate the Axis Aligned Bounding Box
+            Aabb = nodeA.GetAxisAlignedBoundingBox() + nodeB.GetAxisAlignedBoundingBox();
+
+            // Determine the splitting plane
+            if (Aabb.XSize > Aabb.YSize)
+            {
+                splittingPlane = Aabb.XSize > Aabb.ZSize ? 0 : 2;
+            }
+            else
+            {
+                splittingPlane = Aabb.YSize > Aabb.ZSize ? 1 : 2;
+            }
+        }
+    }
 }

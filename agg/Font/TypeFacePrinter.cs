@@ -159,7 +159,7 @@ namespace MatterHackers.Agg.Font
 		public void Render(Graphics2D graphics2D, Color color, IVertexSourceProxy vertexSourceToApply)
 		{
 			vertexSourceToApply.VertexSource = this;
-			rewind(0);
+			Rewind(0);
 			if (DrawFromHintedCache)
 			{
 				// TODO: make this work
@@ -179,7 +179,7 @@ namespace MatterHackers.Agg.Font
 			}
 			else
 			{
-				rewind(0);
+				Rewind(0);
 				graphics2D.Render(this, color);
 			}
 		}
@@ -195,7 +195,8 @@ namespace MatterHackers.Agg.Font
 				currentOffset.Y += Origin.Y + TypeFaceStyle.DescentInPixels - 1;
 
 				string[] lines = text.Split('\n');
-				foreach (string line in lines)
+				var transformX = graphics2D.GetTransform().tx;
+                foreach (string line in lines)
 				{
 					currentOffset = GetXPositionForLineBasedOnJustification(currentOffset, line);
 					currentOffset.X += Origin.X;
@@ -206,7 +207,10 @@ namespace MatterHackers.Agg.Font
 
 						if (currentGlyphImage != null)
 						{
-							graphics2D.Render(currentGlyphImage, currentOffset);
+							if (transformX + currentOffset.X < graphics2D.Width)
+							{
+								graphics2D.Render(currentGlyphImage, currentOffset);
+							}
 						}
 
 						// get the advance for the next character
@@ -241,9 +245,9 @@ namespace MatterHackers.Agg.Font
 						{
 							foreach (VertexData vertexData in currentGlyph.Vertices())
 							{
-								if (vertexData.command != ShapePath.FlagsAndCommand.Stop)
+								if (vertexData.Command != FlagsAndCommand.Stop)
 								{
-									var offsetVertex = new VertexData(vertexData.command, vertexData.position + currentOffset + Origin);
+									var offsetVertex = new VertexData(vertexData.Command, vertexData.Position + currentOffset + Origin);
 									yield return offsetVertex;
 								}
 							}
@@ -259,7 +263,7 @@ namespace MatterHackers.Agg.Font
 				}
 			}
 
-			var endVertex = new VertexData(ShapePath.FlagsAndCommand.Stop, Vector2.Zero);
+			var endVertex = new VertexData(FlagsAndCommand.Stop, Vector2.Zero);
 			yield return endVertex;
 		}
 

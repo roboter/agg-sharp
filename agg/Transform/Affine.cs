@@ -476,7 +476,12 @@ namespace MatterHackers.Agg.Transform
 			return temp;
 		}
 
-		public static Affine operator +(Affine a, Vector2 b)
+        public override string ToString()
+        {
+            return $"sx: {sx}, sy: {sy}, tx: {tx}, ty: {ty}";
+        }
+
+        public static Affine operator +(Affine a, Vector2 b)
 		{
 			Affine temp = new Affine(a);
 			temp.tx += b.X;
@@ -515,29 +520,29 @@ namespace MatterHackers.Agg.Transform
 
 		//-------------------------------------------- Transformations
 		// Direct transformation of x and y
-		public void transform(ref double x, ref double y)
+		public void Transform(ref double x, ref double y)
 		{
-			double tmp = x;
-			x = tmp * sx + y * shx + tx;
-			y = tmp * shy + y * sy + ty;
+			double tempX = x;
+			x = tempX * sx + y * shx + tx;
+			y = tempX * shy + y * sy + ty;
 		}
 
 		public void transform(ref Vector2 pointToTransform)
 		{
-			transform(ref pointToTransform.X, ref pointToTransform.Y);
+			Transform(ref pointToTransform.X, ref pointToTransform.Y);
 		}
 
 		public Vector2 Transform(Vector2 vectorIn)
 		{
 			var temp = vectorIn;
-			transform(ref temp.X, ref temp.Y);
+			Transform(ref temp.X, ref temp.Y);
 			return temp;
 		}
 
 		public void transform(ref RectangleDouble rectToTransform)
 		{
-			transform(ref rectToTransform.Left, ref rectToTransform.Bottom);
-			transform(ref rectToTransform.Right, ref rectToTransform.Top);
+			Transform(ref rectToTransform.Left, ref rectToTransform.Bottom);
+			Transform(ref rectToTransform.Right, ref rectToTransform.Top);
 		}
 
 		/*
@@ -618,23 +623,23 @@ namespace MatterHackers.Agg.Transform
 
 		public bool is_identity(double epsilon)
 		{
-			return agg_basics.is_equal_eps(sx, 1.0, epsilon) &&
-				agg_basics.is_equal_eps(shy, 0.0, epsilon) &&
-				agg_basics.is_equal_eps(shx, 0.0, epsilon) &&
-				agg_basics.is_equal_eps(sy, 1.0, epsilon) &&
-				agg_basics.is_equal_eps(tx, 0.0, epsilon) &&
-				agg_basics.is_equal_eps(ty, 0.0, epsilon);
+			return Util.is_equal_eps(sx, 1.0, epsilon) &&
+				Util.is_equal_eps(shy, 0.0, epsilon) &&
+				Util.is_equal_eps(shx, 0.0, epsilon) &&
+				Util.is_equal_eps(sy, 1.0, epsilon) &&
+				Util.is_equal_eps(tx, 0.0, epsilon) &&
+				Util.is_equal_eps(ty, 0.0, epsilon);
 		}
 
 		// Check to see if two matrices are equal
 		public bool is_equal(Affine m, double epsilon)
 		{
-			return agg_basics.is_equal_eps(sx, m.sx, epsilon) &&
-				agg_basics.is_equal_eps(shy, m.shy, epsilon) &&
-				agg_basics.is_equal_eps(shx, m.shx, epsilon) &&
-				agg_basics.is_equal_eps(sy, m.sy, epsilon) &&
-				agg_basics.is_equal_eps(tx, m.tx, epsilon) &&
-				agg_basics.is_equal_eps(ty, m.ty, epsilon);
+			return Util.is_equal_eps(sx, m.sx, epsilon) &&
+				Util.is_equal_eps(shy, m.shy, epsilon) &&
+				Util.is_equal_eps(shx, m.shx, epsilon) &&
+				Util.is_equal_eps(sy, m.sy, epsilon) &&
+				Util.is_equal_eps(tx, m.tx, epsilon) &&
+				Util.is_equal_eps(ty, m.ty, epsilon);
 		}
 
 		// Determine the major parameters. Use with caution considering
@@ -645,8 +650,8 @@ namespace MatterHackers.Agg.Transform
 			double y1 = 0.0;
 			double x2 = 1.0;
 			double y2 = 0.0;
-			transform(ref x1, ref y1);
-			transform(ref x2, ref y2);
+			Transform(ref x1, ref y1);
+			Transform(ref x2, ref y2);
 			return Math.Atan2(y2 - y1, x2 - x1);
 		}
 
@@ -664,8 +669,8 @@ namespace MatterHackers.Agg.Transform
 			double y2 = 1.0;
 			Affine t = new Affine(this);
 			t *= NewRotation(-rotation());
-			t.transform(ref x1, ref y1);
-			t.transform(ref x2, ref y2);
+			t.Transform(ref x1, ref y1);
+			t.Transform(ref x2, ref y2);
 			x = x2 - x1;
 			y = y2 - y1;
 		}
@@ -678,5 +683,4 @@ namespace MatterHackers.Agg.Transform
 			x = Math.Sqrt(sx * sx + shx * shx);
 			y = Math.Sqrt(shy * shy + sy * sy);
 		}
-	};
-}
+	}}

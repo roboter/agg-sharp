@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using MatterHackers.Agg.Transform;
 using MatterHackers.Agg.UI;
 using MatterHackers.Agg.UI.Examples;
@@ -12,9 +13,12 @@ namespace MatterHackers.Agg
     public class TriangleRenderer : GuiWidget
     {
 		public static List<Color> colors = null;
+        public bool DrawNumbers { get; set; }
 
-		public TriangleRenderer()
+        public TriangleRenderer()
         {
+			this.DrawNumbers = DrawNumbers;
+
 			if (colors == null)
             {
 				colors = new List<Color>();
@@ -52,7 +56,7 @@ namespace MatterHackers.Agg
 			transform *= Affine.NewTranslation(Width / 20, Height / 20);
 
 			// draw all the triangles
-			var index = 0;
+			var colorIndex = 0;
 			foreach (var poly in Polygons)
 			{
 				var numPoints = poly.Count;
@@ -74,16 +78,35 @@ namespace MatterHackers.Agg
 						}
 					}
 				
-					graphics2D.Render(new VertexSourceApplyTransform(vertexStorage, transform), 0, 0, colors[index].WithAlpha(190));
+					graphics2D.Render(new VertexSourceApplyTransform(vertexStorage, transform), 0, 0, colors[colorIndex++].WithAlpha(190));
 				}
 				else if (numPoints > 1)
 				{
 					var p0 = poly[numPoints - 1];
 					var p1 = poly[numPoints - 2];
-					graphics2D.Line(transform.Transform(p0), transform.Transform(p1), colors[index]);
+					graphics2D.Line(transform.Transform(p0), transform.Transform(p1), Color.Green);
 				}
+				else if (numPoints == 1)
+				{
+                    var p0 = poly[numPoints - 1];
+                    graphics2D.Circle(transform.Transform(p0), 5, Color.Red);
+                }
+			}
 
-				index++;
+			if (DrawNumbers)
+			{
+				// draw all the numbers
+                foreach (var poly in Polygons.Where(poly => poly.Count > 1))
+				{
+                    var numPoints = poly.Count;
+                    for (int i = 0; i < numPoints; i++)
+					{
+                        var p0 = poly[i];
+                        graphics2D.DrawString(i.ToString(), transform.Transform(p0));
+                    }
+
+                    colorIndex++;
+                }
 			}
 
 			base.OnDraw(graphics2D);
@@ -94,9 +117,9 @@ namespace MatterHackers.Agg
 
     public class RenderTriangles : GuiWidget, IDemoApp
 	{
-        private TextEditWidget textWidget;
+        private ThemedTextEditWidget textWidget;
 
-		string CurrentFile()
+        string CurrentFile()
 		{
 			return "Polygons_0.txt";
 		}
@@ -126,24 +149,37 @@ namespace MatterHackers.Agg
 
 			AddChild(spliter);
 
-			var leftSideTopToBottom = new FlowLayoutWidget()
+			var leftSideTopToBottom = new FlowLayoutWidget(FlowDirection.TopToBottom)
             {
 				HAnchor = HAnchor.Stretch,
 				VAnchor = VAnchor.Stretch,
             };
 			spliter.Panel1.AddChild(leftSideTopToBottom);
 
-			textWidget = new TextEditWidget(pixelWidth: 200)
+			textWidget = new ThemedTextEditWidget("", ThemeConfig.DefaultTheme(),
+				multiLine: true,
+                messageWhenEmptyAndNotSelected: "Each line should have a comma separated\n x, y. Add as many lines as you want.\nAdd an empty line to creat a new polygon.",
+				pixelWidth: 200)
 			{
 				VAnchor = VAnchor.Stretch,
 				HAnchor = HAnchor.Stretch,
-				Multiline = true,
 				Margin = 3,
 			};
 
-			leftSideTopToBottom.AddChild(textWidget);
+			textWidget.ActualTextEditWidget.VAnchor = VAnchor.Stretch;
+			textWidget.ActualTextEditWidget.HAnchor = HAnchor.Stretch;
 
-			spliter.AddChild(new VerticalLine());
+			var showNumbers = new CheckBox("Show Numbers")
+			{
+				Margin = new BorderDouble(7),
+				HAnchor = HAnchor.Left
+			};
+
+            leftSideTopToBottom.AddChild(textWidget);
+
+            leftSideTopToBottom.AddChild(showNumbers);
+
+            spliter.AddChild(new VerticalLine());
 
 			var triangleRenderer = new TriangleRenderer()
 			{
@@ -151,7 +187,12 @@ namespace MatterHackers.Agg
 				VAnchor = VAnchor.Stretch
 			};
 
-			spliter.Panel2.AddChild(triangleRenderer);
+			showNumbers.CheckedStateChanged += (s, e) =>
+			{
+				triangleRenderer.DrawNumbers = showNumbers.Checked;
+			};
+
+            spliter.Panel2.AddChild(triangleRenderer);
 
 			textWidget.TextChanged += (sender, e) =>
 			{

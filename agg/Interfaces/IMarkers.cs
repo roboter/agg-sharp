@@ -21,8 +21,8 @@ namespace MatterHackers.Agg
 {
 	public interface IMarkers
 	{
-		void remove_all();
+		void Clear();
 
-		void add_vertex(double x, double y, ShapePath.FlagsAndCommand unknown);
+		void add_vertex(double x, double y, FlagsAndCommand unknown);
 	};
 }

@@ -69,15 +69,26 @@ namespace MatterHackers.Agg.UI
 			}
 		}
 
-		public TabControl(Orientation orientation = Orientation.Horizontal, GuiWidget separator = null)
+        public void AddLineRightOfTabs(ThemeConfig theme)
+        {
+            TabBar.AddChild(new GuiWidget(1, 1)
+            {
+                VAnchor = VAnchor.Bottom,
+                HAnchor = HAnchor.Stretch,
+                BackgroundColor = theme.TextColor
+            });
+        }
+        
+		public TabControl(ThemeConfig theme, Orientation orientation = Orientation.Horizontal, GuiWidget separator = null)
 		{
 			AnchorAll();
 
 			GuiWidget tabPageArea = new GuiWidget();
 
 			tabBar = new TabBar(FlowDirection.LeftToRight, tabPageArea);
-			
-			base.AddChild(tabBar);
+			// tabBar.BackgroundColor = theme.TabBarBackground;
+
+            base.AddChild(tabBar);
 
 			if (separator != null)
 			{
@@ -168,7 +179,18 @@ namespace MatterHackers.Agg.UI
 			return tabPage;
 		}
 
-		public string SelectedTabName => tabBar.SelectedTabName;
+		public string SelectedTabName
+		{
+			get
+			{
+				return tabBar.SelectedTabName;
+			}
+
+            set
+			{
+                tabBar.SelectedTabName = value;
+            }
+		}
 
 		public int TabCount => tabPages.Count;
 
@@ -210,7 +232,12 @@ namespace MatterHackers.Agg.UI
 			AddTab(new TextTab(tabPageWidget, internalTabName));
 		}
 
-		public void AddTab(Tab newTab, int tabPosition = -1)
+        public void AddTab(ThemeConfig theme, TabPage tabPageWidget, string internalTabName)
+        {
+            AddTab(new TextTab(theme, tabPageWidget, internalTabName));
+        }
+
+        public void AddTab(Tab newTab, int tabPosition = -1)
 		{
 			var tabPage = newTab.TabPage;
 

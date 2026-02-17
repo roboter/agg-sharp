@@ -59,7 +59,7 @@ namespace MatterHackers.RenderOpenGl
 			world.RenderPlane(plane.Normal * plane.DistanceFromOrigin, plane.Normal, color, doDepthTest, rectSize, lineWidth);
 		}
 
-		public static void RenderPlane(this WorldView world, Vector3 position, Vector3 normal, MatterHackers.Agg.Color color, bool doDepthTest, double rectSize, double lineWidth)
+		public static void RenderPlane(this WorldView world, Vector3 position, Vector3 normal, Color color, bool doDepthTest, double rectSize, double lineWidth)
 		{
 			var clipping = world.GetClippingFrustum();
 			// get any perpendicular to the normal (we call it x to make it clear where to apply it)
@@ -325,19 +325,19 @@ namespace MatterHackers.RenderOpenGl
 
 			Vector3 firstPosition = default(Vector3);
 			Vector3 prevPosition = default(Vector3);
-			foreach (var vertex in path.Vertices())
+			foreach (var vertex in new FlattenCurves(path).Vertices())
 			{
-				if (vertex.command == ShapePath.FlagsAndCommand.MoveTo)
+				if (vertex.Command == FlagsAndCommand.MoveTo)
 				{
-					firstPosition = prevPosition = new Vector3(vertex.position).Transform(worldMatrix);
+					firstPosition = prevPosition = new Vector3(vertex.Position).Transform(worldMatrix);
 				}
-				else if (vertex.command == ShapePath.FlagsAndCommand.LineTo)
+				else if (vertex.Command == FlagsAndCommand.LineTo)
 				{
-					var position = new Vector3(vertex.position).Transform(worldMatrix);
+					var position = new Vector3(vertex.Position).Transform(worldMatrix);
 					world.Render3DLineNoPrep(frustum, prevPosition, position, color, lineWidth);
 					prevPosition = position;
 				}
-				else if (vertex.command.HasFlag(ShapePath.FlagsAndCommand.FlagClose))
+				else if (vertex.Command.HasFlag(FlagsAndCommand.FlagClose))
 				{
 					world.Render3DLineNoPrep(frustum, prevPosition, firstPosition, color, lineWidth);
 				}
@@ -354,13 +354,13 @@ namespace MatterHackers.RenderOpenGl
 			Vector3 prevPosition = default(Vector3);
 			foreach (var vertex in path.Vertices())
 			{
-				if (vertex.command == ShapePath.FlagsAndCommand.MoveTo)
+				if (vertex.Command == FlagsAndCommand.MoveTo)
 				{
-					prevPosition = new Vector3(vertex.position).Transform(worldMatrix);
+					prevPosition = new Vector3(vertex.Position).Transform(worldMatrix);
 				}
-				else if (vertex.command == ShapePath.FlagsAndCommand.LineTo)
+				else if (vertex.Command == FlagsAndCommand.LineTo)
 				{
-					var position = new Vector3(vertex.position).Transform(worldMatrix);
+					var position = new Vector3(vertex.Position).Transform(worldMatrix);
 					box.ExpandToInclude(prevPosition);
 					box.ExpandToInclude(position);
 					prevPosition = position;
@@ -503,7 +503,7 @@ namespace MatterHackers.RenderOpenGl
 				GL.Disable(EnableCap.DepthTest);
 			}
 
-			vertexSource.rewind(0);
+			vertexSource.Rewind(0);
 
 			// the alpha has to come from the bound texture
 			GL.Color4(color.red, color.green, color.blue, (byte)255);

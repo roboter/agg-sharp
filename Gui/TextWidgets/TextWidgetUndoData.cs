@@ -4,7 +4,7 @@
 //
 // C# port by: Lars Brubaker
 //                  larsbrubaker@gmail.com
-// Copyright (C) 2007
+// Copyright (C) 2025
 //
 // Permission to copy, use, modify, sell and distribute this software
 // is granted provided this copyright notice appears in all copies.
@@ -16,43 +16,45 @@
 //          mcseemagg@yahoo.com
 //          http://www.antigrain.com
 //----------------------------------------------------------------------------
-using System;
+using MatterHackers.Localizations;
 
 namespace MatterHackers.Agg.UI
 {
-	public class TextWidgetUndoCommand : IUndoRedoCommand
-	{
-		private int charIndexToInsertBefore;
-		private bool selecting;
-		private int selectionIndexToStartBefore;
-		private InternalTextEditWidget textEditWidget;
-		private String undoString;
+    public class TextWidgetUndoCommand : IUndoRedoCommand
+    {
+        private int charIndexToInsertBefore;
+        private bool selecting;
+        private int selectionIndexToStartBefore;
+        private InternalTextEditWidget textEditWidget;
+        private string undoString;
 
-		internal TextWidgetUndoCommand(InternalTextEditWidget textEditWidget)
-		{
-			this.textEditWidget = textEditWidget;
-			undoString = textEditWidget.Text;
-			charIndexToInsertBefore = textEditWidget.CharIndexToInsertBefore;
-			selectionIndexToStartBefore = textEditWidget.SelectionIndexToStartBefore;
-			selecting = textEditWidget.Selecting;
-		}
+        internal TextWidgetUndoCommand(InternalTextEditWidget textEditWidget)
+        {
+            this.textEditWidget = textEditWidget;
+            undoString = textEditWidget.GetActualText();
+            charIndexToInsertBefore = textEditWidget.CharIndexToInsertBefore;
+            selectionIndexToStartBefore = textEditWidget.SelectionIndexToStartBefore;
+            selecting = textEditWidget.Selecting;
+        }
 
-		public void Do()
-		{
-			ExtractData();
-		}
+        public string Name => "Text Change".Localize();
 
-		public void Undo()
-		{
-			ExtractData();
-		}
+        public void Do()
+        {
+            ExtractData();
+        }
 
-		internal void ExtractData()
-		{
-			textEditWidget.Text = undoString;
-			textEditWidget.CharIndexToInsertBefore = charIndexToInsertBefore;
-			textEditWidget.SelectionIndexToStartBefore = selectionIndexToStartBefore;
-			textEditWidget.Selecting = selecting;
-		}
-	}
+        public void Undo()
+        {
+            ExtractData();
+        }
+
+        internal void ExtractData()
+        {
+            textEditWidget.SetActualTextAndUpdate(undoString);
+            textEditWidget.CharIndexToInsertBefore = charIndexToInsertBefore;
+            textEditWidget.SelectionIndexToStartBefore = selectionIndexToStartBefore;
+            textEditWidget.Selecting = selecting;
+        }
+    }
 }

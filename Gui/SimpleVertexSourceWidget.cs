@@ -42,12 +42,12 @@ namespace MatterHackers.Agg.UI
 				{
 					RectangleDouble localBounds = new RectangleDouble(double.PositiveInfinity, double.PositiveInfinity, double.NegativeInfinity, double.NegativeInfinity);
 
-					rewind(0);
+					Rewind(0);
 					double x;
 					double y;
-					ShapePath.FlagsAndCommand cmd;
+					FlagsAndCommand cmd;
 					int numPoint = 0;
-					while (!ShapePath.is_stop(cmd = vertex(out x, out y)))
+					while (!ShapePath.IsStop(cmd = Vertex(out x, out y)))
 					{
 						numPoint++;
 						localBounds.ExpandToInclude(x, y);
@@ -84,16 +84,26 @@ namespace MatterHackers.Agg.UI
 
 		public abstract IEnumerable<VertexData> Vertices();
 
-		public abstract void rewind(int path_id);
+		public abstract void Rewind(int path_id);
 
-		public abstract ShapePath.FlagsAndCommand vertex(out double x, out double y);
+		public abstract FlagsAndCommand Vertex(out double x, out double y);
 
 		public virtual IColorType color(int i)
 		{
 			return (IColorType)new ColorF();
 		}
 
-		public override void OnDraw(Graphics2D graphics2D)
+        public ulong GetLongHashCode(ulong hash = 14695981039346656037)
+        {
+            foreach (var vertex in this.Vertices())
+            {
+                hash = vertex.GetLongHashCode(hash);
+            }
+
+            return hash;
+        }
+
+        public override void OnDraw(Graphics2D graphics2D)
 		{
 			for (int i = 0; i < num_paths(); i++)
 			{

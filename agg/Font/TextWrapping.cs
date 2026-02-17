@@ -15,15 +15,16 @@ namespace MatterHackers.Agg.Font
 			this.styledTypeFace = styledTypeFace;
 		}
 
-		public string InsertCRs(string textToWrap, double maxPixelWidth)
+		public string InsertCRs(string textToWrap, double maxPixelWidth, int wrappingIndentSpaces = 0)
 		{
 			StringBuilder textWithCRs = new StringBuilder();
-			List<string> lines = WrapText(textToWrap, maxPixelWidth);
+			List<string> lines = WrapText(textToWrap, maxPixelWidth, wrappingIndentSpaces);
 			for (int i = 0; i < lines.Count; i++)
 			{
 				string line = lines[i];
 				if (i > 0)
 				{
+					// add a newline and the right number of spaces
 					textWithCRs.Append("\n");
 				}
 
@@ -33,16 +34,25 @@ namespace MatterHackers.Agg.Font
 			return textWithCRs.ToString();
 		}
 
-		public List<string> WrapText(string textToWrap, double maxPixelWidth)
+		public List<string> WrapText(string textToWrap, double maxPixelWidth, int wrappingIndentSpaces = 0)
 		{
 			List<string> finalLines = new List<string>();
 			string[] splitOnNL = textToWrap.Split('\n');
 			foreach (string line in splitOnNL)
 			{
 				List<string> linesFromWidth = WrapSingleLineOnWidth(line, maxPixelWidth);
-				if (linesFromWidth.Count > 0)
+				var first = true;
+				foreach (var lineFromWidth in linesFromWidth)
 				{
-					finalLines.AddRange(linesFromWidth);
+					if (first)
+					{
+						first = false;
+						finalLines.Add(lineFromWidth);
+					}
+					else
+                    {
+                        finalLines.Add(new string(' ', wrappingIndentSpaces) + lineFromWidth);
+                    }
 				}
 			}
 
@@ -119,7 +129,7 @@ namespace MatterHackers.Agg.Font
 						lines.Add(textToWrap.Substring(0, countBeforeWrap));
 					}
 
-					// check if we wrapped because of to long or a '\n'. If '\n' we only trim a leading space if to long.
+					// check if we wrapped because of too long or a '\n'. If '\n' we only trim a leading space if too long.
 					if (countBeforeWrap > 1 // we have more than 2 characters left
 						&& textToWrap.Length > countBeforeWrap // we are longer than the remaining text
 						&& textToWrap[countBeforeWrap] == ' ' // the first new character is a space

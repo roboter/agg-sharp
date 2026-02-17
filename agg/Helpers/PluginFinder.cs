@@ -29,7 +29,6 @@ either expressed or implied, of the FreeBSD Project.
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -39,9 +38,23 @@ namespace MatterHackers.Agg
 	{
 		private static Dictionary<Assembly, List<Type>> assemblyAndTypes = new Dictionary<Assembly, List<Type>>();
 
-		public static void LoadTypesFromAssembly(Assembly assembly)
+		private static HashSet<string> AssembliesToIgnore = new HashSet<string>
 		{
-			var assemblyTypes = new List<Type>();
+            "Microsoft.Testing.Platform.MSBuild",
+            "Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter",
+            "Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices",
+            "Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions"
+        };
+
+
+        public static void LoadTypesFromAssembly(Assembly assembly)
+		{
+			if (assembly == null || assemblyAndTypes.ContainsKey(assembly) || AssembliesToIgnore.Contains(assembly.GetName().Name))
+			{
+				return;
+            }
+
+            var assemblyTypes = new List<Type>();
 
 			foreach (var type in assembly.GetTypes())
 			{
@@ -60,7 +73,10 @@ namespace MatterHackers.Agg
 				}
 			}
 
-			assemblyAndTypes.Add(assembly, assemblyTypes);
+			if (!assemblyAndTypes.ContainsKey(assembly))
+			{
+				assemblyAndTypes.Add(assembly, assemblyTypes);
+			}
 		}
 
 		public static IEnumerable<Type> FindTypes<T>()

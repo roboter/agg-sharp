@@ -430,7 +430,7 @@ namespace MatterHackers.Agg.Transform
 
 		//---------------------------------------------------- Transformations
 		// Direct transformation of x and y
-		public void transform(ref double px, ref double py)
+		public void Transform(ref double px, ref double py)
 		{
 			double x = px;
 			double y = py;
@@ -462,7 +462,7 @@ namespace MatterHackers.Agg.Transform
 		public void inverse_transform(ref double x, ref double y)
 		{
 			Perspective t = new Perspective(this);
-			if (t.invert()) t.transform(ref x, ref y);
+			if (t.invert()) t.Transform(ref x, ref y);
 		}
 
 		//---------------------------------------------------------- Auxiliary
@@ -495,15 +495,15 @@ namespace MatterHackers.Agg.Transform
 
 		public bool is_identity(double epsilon)
 		{
-			return agg_basics.is_equal_eps(sx, 1.0, epsilon) &&
-				   agg_basics.is_equal_eps(shy, 0.0, epsilon) &&
-				   agg_basics.is_equal_eps(w0, 0.0, epsilon) &&
-				   agg_basics.is_equal_eps(shx, 0.0, epsilon) &&
-				   agg_basics.is_equal_eps(sy, 1.0, epsilon) &&
-				   agg_basics.is_equal_eps(w1, 0.0, epsilon) &&
-				   agg_basics.is_equal_eps(tx, 0.0, epsilon) &&
-				   agg_basics.is_equal_eps(ty, 0.0, epsilon) &&
-				   agg_basics.is_equal_eps(w2, 1.0, epsilon);
+			return Util.is_equal_eps(sx, 1.0, epsilon) &&
+				   Util.is_equal_eps(shy, 0.0, epsilon) &&
+				   Util.is_equal_eps(w0, 0.0, epsilon) &&
+				   Util.is_equal_eps(shx, 0.0, epsilon) &&
+				   Util.is_equal_eps(sy, 1.0, epsilon) &&
+				   Util.is_equal_eps(w1, 0.0, epsilon) &&
+				   Util.is_equal_eps(tx, 0.0, epsilon) &&
+				   Util.is_equal_eps(ty, 0.0, epsilon) &&
+				   Util.is_equal_eps(w2, 1.0, epsilon);
 		}
 
 		public bool is_equal(Perspective m)
@@ -513,15 +513,15 @@ namespace MatterHackers.Agg.Transform
 
 		public bool is_equal(Perspective m, double epsilon)
 		{
-			return agg_basics.is_equal_eps(sx, m.sx, epsilon) &&
-				   agg_basics.is_equal_eps(shy, m.shy, epsilon) &&
-				   agg_basics.is_equal_eps(w0, m.w0, epsilon) &&
-				   agg_basics.is_equal_eps(shx, m.shx, epsilon) &&
-				   agg_basics.is_equal_eps(sy, m.sy, epsilon) &&
-				   agg_basics.is_equal_eps(w1, m.w1, epsilon) &&
-				   agg_basics.is_equal_eps(tx, m.tx, epsilon) &&
-				   agg_basics.is_equal_eps(ty, m.ty, epsilon) &&
-				   agg_basics.is_equal_eps(w2, m.w2, epsilon);
+			return Util.is_equal_eps(sx, m.sx, epsilon) &&
+				   Util.is_equal_eps(shy, m.shy, epsilon) &&
+				   Util.is_equal_eps(w0, m.w0, epsilon) &&
+				   Util.is_equal_eps(shx, m.shx, epsilon) &&
+				   Util.is_equal_eps(sy, m.sy, epsilon) &&
+				   Util.is_equal_eps(w1, m.w1, epsilon) &&
+				   Util.is_equal_eps(tx, m.tx, epsilon) &&
+				   Util.is_equal_eps(ty, m.ty, epsilon) &&
+				   Util.is_equal_eps(w2, m.w2, epsilon);
 		}
 
 		// Determine the major affine parameters. Use with caution
@@ -539,8 +539,8 @@ namespace MatterHackers.Agg.Transform
 			double y1 = 0.0;
 			double x2 = 1.0;
 			double y2 = 0.0;
-			transform(ref x1, ref y1);
-			transform(ref x2, ref y2);
+			Transform(ref x1, ref y1);
+			Transform(ref x2, ref y2);
 			return Math.Atan2(y2 - y1, x2 - x1);
 		}
 
@@ -558,8 +558,8 @@ namespace MatterHackers.Agg.Transform
 			double y2 = 1.0;
 			Perspective t = new Perspective(this);
 			t *= Affine.NewRotation(-rotation());
-			t.transform(ref x1, ref y1);
-			t.transform(ref x2, ref y2);
+			t.Transform(ref x1, ref y1);
+			t.Transform(ref x2, ref y2);
 			x = x2 - x1;
 			y = y2 - y1;
 		}

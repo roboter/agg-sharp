@@ -109,7 +109,7 @@ namespace MatterHackers.Agg
 				m_start_x = start_x;
 				m_start_y = start_y;
 
-				m_vertices.remove_all();
+				m_vertices.Clear();
 				for (int i = 0; i < m_rows; i++)
 				{
 					double x = start_x;
@@ -119,7 +119,7 @@ namespace MatterHackers.Agg
 						double dy = random(-0.5, 0.5);
 						Color c = new Color(rand.Next() & 0xFF, rand.Next() & 0xFF, rand.Next() & 0xFF);
 						Color dc = new Color(rand.Next() & 1, rand.Next() & 1, rand.Next() & 1);
-						m_vertices.add(new mesh_point(x, start_y, dx, dy, c, dc));
+						m_vertices.Add(new mesh_point(x, start_y, dx, dy, c, dc));
 						x += cell_w;
 					}
 					start_y += cell_h;
@@ -130,8 +130,8 @@ namespace MatterHackers.Agg
 				//  | / |
 				//  |/t1|
 				//  1---2
-				m_triangles.remove_all();
-				m_edges.remove_all();
+				m_triangles.Clear();
+				m_edges.Clear();
 				for (int i = 0; i < m_rows - 1; i++)
 				{
 					for (int j = 0; j < m_cols - 1; j++)
@@ -140,8 +140,8 @@ namespace MatterHackers.Agg
 						int p2 = p1 + 1;
 						int p3 = p2 + m_cols;
 						int p4 = p1 + m_cols;
-						m_triangles.add(new mesh_triangle((int)p1, (int)p2, (int)p3));
-						m_triangles.add(new mesh_triangle((int)p3, (int)p4, (int)p1));
+						m_triangles.Add(new mesh_triangle((int)p1, (int)p2, (int)p3));
+						m_triangles.Add(new mesh_triangle((int)p3, (int)p4, (int)p1));
 
 						int curr_cell = i * (m_cols - 1) + j;
 						int left_cell = j != 0 ? (int)(curr_cell - 1) : -1;
@@ -156,18 +156,18 @@ namespace MatterHackers.Agg
 						int bott_t1 = (bott_cell >= 0) ? bott_cell * 2 : -1;
 						int bott_t2 = (bott_cell >= 0) ? bott_t1 + 1 : -1;
 
-						m_edges.add(new mesh_edge((int)p1, (int)p2, curr_t1, bott_t2));
-						m_edges.add(new mesh_edge((int)p1, (int)p3, curr_t2, curr_t1));
-						m_edges.add(new mesh_edge((int)p1, (int)p4, left_t1, curr_t2));
+						m_edges.Add(new mesh_edge((int)p1, (int)p2, curr_t1, bott_t2));
+						m_edges.Add(new mesh_edge((int)p1, (int)p3, curr_t2, curr_t1));
+						m_edges.Add(new mesh_edge((int)p1, (int)p4, left_t1, curr_t2));
 
 						if (j == m_cols - 2) // Last column
 						{
-							m_edges.add(new mesh_edge((int)p2, (int)p3, curr_t1, -1));
+							m_edges.Add(new mesh_edge((int)p2, (int)p3, curr_t1, -1));
 						}
 
 						if (i == m_rows - 2) // Last row
 						{
-							m_edges.add(new mesh_edge((int)p3, (int)p4, curr_t2, -1));
+							m_edges.Add(new mesh_edge((int)p3, (int)p4, curr_t2, -1));
 						}
 					}
 				}
@@ -200,7 +200,7 @@ namespace MatterHackers.Agg
 			public void rotate_colors()
 			{
 				int i;
-				for (i = 1; i < m_vertices.size(); i++)
+				for (i = 1; i < m_vertices.Count; i++)
 				{
 					Color c = m_vertices[i].color;
 					Color dc = m_vertices[i].dc;
@@ -223,9 +223,9 @@ namespace MatterHackers.Agg
 				if (mouseEvent.Button == MouseButtons.Left)
 				{
 					int i;
-					for (i = 0; i < m_vertices.size(); i++)
+					for (i = 0; i < m_vertices.Count; i++)
 					{
-						if (agg_math.calc_distance(x, y, m_vertices[i].x, m_vertices[i].y) < 5)
+						if (agg_math.CalcDistance(x, y, m_vertices[i].x, m_vertices[i].y) < 5)
 						{
 							m_drag_idx = i;
 							m_drag_dx = x - m_vertices[i].x;
@@ -263,7 +263,7 @@ namespace MatterHackers.Agg
 
 			public int num_vertices()
 			{
-				return m_vertices.size();
+				return m_vertices.Count;
 			}
 
 			public mesh_point vertex(int i)
@@ -278,7 +278,7 @@ namespace MatterHackers.Agg
 
 			public int num_triangles()
 			{
-				return m_triangles.size();
+				return m_triangles.Count;
 			}
 
 			public mesh_triangle triangle(int i)
@@ -288,7 +288,7 @@ namespace MatterHackers.Agg
 
 			public int num_edges()
 			{
-				return m_edges.size();
+				return m_edges.Count;
 			}
 
 			public mesh_edge edge(int i)
@@ -326,7 +326,7 @@ namespace MatterHackers.Agg
 				}
 			}
 
-			public bool is_solid(int style)
+			public bool IsSolid(int style)
 			{
 				return false;
 			}
@@ -336,7 +336,7 @@ namespace MatterHackers.Agg
 				return new Color(0, 0, 0, 0);
 			}
 
-			public void generate_span(Color[] span, int spanIndex, int x, int y, int len, int style)
+			public void GenerateSpan(Color[] span, int spanIndex, int x, int y, int len, int style)
 			{
 				m_triangles[style].generate(span, spanIndex, x, y, len);
 			}

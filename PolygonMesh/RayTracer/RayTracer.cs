@@ -344,10 +344,9 @@ namespace MatterHackers.RayTracer
 			{
 				try
 				{
-					IntersectInfo primaryInfo = TracePrimaryRay(rayBundle.rayArray[i], scene);
 					if (intersectionsForBundle[i].HitType != IntersectionType.None)
 					{
-						intersectionsForBundle[i].TotalColor = CreateAndTraceSecondaryRays(primaryInfo, rayBundle.rayArray[i], scene, 0);
+						intersectionsForBundle[i].TotalColor = CreateAndTraceSecondaryRays(intersectionsForBundle[i], rayBundle.rayArray[i], scene, 0);
 					}
 					else
 					{
@@ -462,6 +461,10 @@ namespace MatterHackers.RayTracer
 
 			foreach (var shapeToTest in scene.shapes)
 			{
+				if (shapeToTest == null)
+				{
+					continue;
+				}
 				IntersectInfo info = shapeToTest.GetClosestIntersection(ray);
 				if (info != null && info.HitType != IntersectionType.None && info.DistanceToHit < primaryRayIntersection.DistanceToHit && info.DistanceToHit >= 0)
 				{
@@ -476,7 +479,12 @@ namespace MatterHackers.RayTracer
 		{
 			if (scene.shapes.Count != 1)
 			{
-				throw new Exception("You can only trace a ray bundle into a single shape, usually a BoundingVolumeHierachy.");
+				throw new Exception("You can only trace a ray bundle into a single shape, usually a BoundingVolumeHierarchy.");
+			}
+
+			if (scene?.shapes[0] == null)
+			{
+				return;
 			}
 
 			scene.shapes[0].GetClosestIntersections(rayBundle, 0, intersectionsForBundle);

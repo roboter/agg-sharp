@@ -32,7 +32,6 @@ either expressed or implied, of the FreeBSD Project.
 using MatterHackers.Agg.Font;
 using System;
 using System.Linq;
-using MatterHackers.Agg.Font;
 
 namespace MatterHackers.Agg.UI
 {
@@ -54,9 +53,17 @@ namespace MatterHackers.Agg.UI
 			AddChild(overState);
 
 			overState.Visible = false;
-		}
 
-		public override void OnParentChanged(EventArgs ex)
+            ObjectSent += (s, e) =>
+            {
+                if (e is MenuItem.MenuClosedMessage)
+                {
+                    this.Highlighted = false;
+                }
+            };
+        }
+
+        public override void OnParentChanged(EventArgs ex)
 		{
 			// We don't need to remove these as the parent we are attached to is the held list that gets turned
 			// into the menu list when required and unhooking these breaks that list from working.
@@ -69,16 +76,6 @@ namespace MatterHackers.Agg.UI
 			};
 
 			base.OnParentChanged(ex);
-		}
-
-		public override void SendToChildren(object objectToRoute)
-		{
-			if (objectToRoute is MenuItem.MenuClosedMessage)
-			{
-				this.Highlighted = false;
-			}
-
-			base.SendToChildren(objectToRoute);
 		}
 
 		public bool Highlighted
@@ -144,7 +141,16 @@ namespace MatterHackers.Agg.UI
 			};
 
 			AddChild(textWidget);
-		}
+
+			ObjectSent += (s, e) =>
+			{
+				if (e is MenuItem.MenuClosedMessage)
+				{
+					this.Highlighted = false;
+				}
+			};
+
+        }
 
 		public override void OnParentChanged(EventArgs ex)
 		{
@@ -171,16 +177,6 @@ namespace MatterHackers.Agg.UI
 			};
 
 			base.OnParentChanged(ex);
-		}
-
-		public override void SendToChildren(object objectToRoute)
-		{
-			if (objectToRoute is MenuItem.MenuClosedMessage)
-			{
-				this.Highlighted = false;
-			}
-
-			base.SendToChildren(objectToRoute);
 		}
 
 		public bool Highlighted

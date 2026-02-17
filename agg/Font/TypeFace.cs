@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using MatterHackers.Agg.SvgTools;
 using MatterHackers.Agg.Transform;
 using MatterHackers.Agg.VertexSource;
 using MatterHackers.VectorMath;
@@ -284,7 +285,7 @@ namespace MatterHackers.Agg.Font
 
 			if (newGlyph.glyphData is VertexStorage storage)
 			{
-				storage.ParseSvgDString(dString);
+                storage.ParseSvgDString(dString);
 			}
 
 			return newGlyph;
@@ -393,7 +394,7 @@ namespace MatterHackers.Agg.Font
 			{
 				storage = new VertexStorage();
 
-				var vertexData = source.Vertices().Where(v => v.command != ShapePath.FlagsAndCommand.FlagNone).ToArray();
+				var vertexData = source.Vertices().Where(v => v.Command != FlagsAndCommand.FlagNone).ToArray();
 
 				var previous = default(VertexData);
 
@@ -404,13 +405,13 @@ namespace MatterHackers.Agg.Font
 					// All MoveTo operations should be preceded by ClosePolygon 
 					if (i > 0 &&
 						current.IsMoveTo
-						&& ShapePath.is_vertex(previous.command))
+						&& ShapePath.IsVertex(previous.Command))
 					{
 						storage.ClosePolygon();
 					}
 
 					// Add original VertexData
-					storage.Add(current.position.X, current.position.Y, current.command);
+					storage.Add(current.Position.X, current.Position.Y, current.Command);
 
 					// Hold prior item
 					previous = current;
@@ -420,14 +421,24 @@ namespace MatterHackers.Agg.Font
 				storage.ClosePolygon();
 			}
 
-			public void rewind(int pathId = 0)
+            public ulong GetLongHashCode(ulong hash = 14695981039346656037)
+            {
+                foreach (var vertex in this.Vertices())
+                {
+                    hash = vertex.GetLongHashCode(hash);
+                }
+
+                return hash;
+            }
+
+            public void Rewind(int pathId = 0)
 			{
-				storage.rewind(pathId);
+				storage.Rewind(pathId);
 			}
 
-			public ShapePath.FlagsAndCommand vertex(out double x, out double y)
+			public FlagsAndCommand Vertex(out double x, out double y)
 			{
-				return storage.vertex(out x, out y);
+				return storage.Vertex(out x, out y);
 			}
 
 			public IEnumerable<VertexData> Vertices()

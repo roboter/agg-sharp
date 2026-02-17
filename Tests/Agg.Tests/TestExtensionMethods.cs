@@ -1,5 +1,5 @@
-﻿/*
-Copyright (c) 2019, John Lewin
+/*
+Copyright (c) 2025, John Lewin, Lars Brubaker
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -27,29 +27,67 @@ of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the FreeBSD Project.
 */
 
-using System.Collections.Generic;
+using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using NUnit.Framework;
+using System.Threading.Tasks;
+
 
 namespace MatterHackers.Agg.Tests
 {
-	public static class TestExtensionMethods
+	public class TestContext
 	{
-		public static string ResolveProjectPath(this TestContext context, int stepsToProjectRoot, params string[] relativePathSteps)
+		public class CurrentTestContext
 		{
-			string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-
-			var allPathSteps = new List<string> { assemblyPath };
-			allPathSteps.AddRange(Enumerable.Repeat("..", stepsToProjectRoot));
-
-			if (relativePathSteps.Any())
+			// default to c:\temp\MatterCADTests
+			private string _testDirectory = Path.Combine(Path.GetTempPath(), "MatterCADTests");
+            public string TestDirectory
 			{
-				allPathSteps.AddRange(relativePathSteps);
+
+				get
+				{
+					if (!Directory.Exists(_testDirectory))
+					{
+						Directory.CreateDirectory(_testDirectory);
+					}
+
+					return _testDirectory;
+				}
+
+				set
+				{
+					_testDirectory = value;
+				}
 			}
 
-			return Path.GetFullPath(Path.Combine(allPathSteps.ToArray()));
+            public async Task SetCompatibleWorkingDirectory()
+			{
+                throw new NotImplementedException();
+			}
+
+			public string ResolveProjectPath(string[] path)
+			{
+				var applicationPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+				var combinedPath = Path.GetFullPath(Path.Combine(applicationPath, Path.Combine(path)));
+
+				return combinedPath;
+			}
+        }
+
+        public CurrentTestContext CurrentContext = new CurrentTestContext();
+    }
+
+	public static class TestExtensionMethods
+	{
+		public static string ResolveProjectPath(this TestContext context, string[] relativePathPieces, [System.Runtime.CompilerServices.CallerFilePath] string sourceFilePath = null)
+		{
+			return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(sourceFilePath), Path.Combine(relativePathPieces)));
+		}
+
+		public static string ResolveProjectPath(this TestContext context, [System.Runtime.CompilerServices.CallerFilePath] string sourceFilePath = null)
+		{
+			return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(sourceFilePath)));
 		}
 	}
 }
