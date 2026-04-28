@@ -156,9 +156,11 @@ namespace MatterHackers.Agg.Image
 		private static bool ConvertImageToImageBuffer(ImageBuffer destImage, SixLabors.ImageSharp.Image imageIn)
 		{
 			var tgaSave = new MemoryStream();
-			var encoder = new SixLabors.ImageSharp.Formats.Tga.TgaEncoder();
-			encoder.BitsPerPixel = SixLabors.ImageSharp.Formats.Tga.TgaBitsPerPixel.Pixel32;
-			encoder.Compression = SixLabors.ImageSharp.Formats.Tga.TgaCompression.None;
+			var encoder = new SixLabors.ImageSharp.Formats.Tga.TgaEncoder()
+			{
+				BitsPerPixel = SixLabors.ImageSharp.Formats.Tga.TgaBitsPerPixel.Pixel32,
+				Compression = SixLabors.ImageSharp.Formats.Tga.TgaCompression.None
+			};
 			imageIn.SaveAsTga(tgaSave, encoder);
 			tgaSave.Seek(0, SeekOrigin.Begin);
 			if (ImageTgaIO.LoadImageData(destImage, tgaSave, 32))
