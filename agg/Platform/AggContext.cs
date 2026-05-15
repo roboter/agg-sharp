@@ -29,6 +29,10 @@ either expressed or implied, of the FreeBSD Project.
 
 using MatterHackers.Agg.Font;
 using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace MatterHackers.Agg.Platform
 {
@@ -56,7 +60,35 @@ namespace MatterHackers.Agg.Platform
 		/// <returns>An instance of the given type</returns>
 		public static T CreateInstanceFrom<T>(string typeString) where T : class
 		{
-			var type = Type.GetType(typeString);
+			var type = Type.GetType(typeString, false);
+			if (type == null)
+			{
+				var parts = typeString.Split(',');
+				var typeName = parts[0].Trim();
+				if (parts.Length > 1)
+				{
+					var assemblyName = parts[1].Trim();
+					Assembly assembly = null;
+					try
+					{
+						assembly = Assembly.Load(new AssemblyName(assemblyName));
+					}
+					catch
+					{
+						var assemblyPath = Path.Combine(AppContext.BaseDirectory, $"{assemblyName}.dll");
+						if (File.Exists(assemblyPath))
+						{
+							assembly = Assembly.LoadFrom(assemblyPath);
+						}
+					}
+
+					type = assembly?.GetType(typeName, false)
+						?? AppDomain.CurrentDomain.GetAssemblies()
+							.FirstOrDefault(loadedAssembly => loadedAssembly.GetName().Name == assemblyName)
+							?.GetType(typeName, false);
+				}
+			}
+
 			return (type == null) ? null : Activator.CreateInstance(type) as T;
 		}
 
@@ -88,6 +120,10 @@ namespace MatterHackers.Agg.Platform
 				{
 					// OsInformation Provider
 					OsInformation = CreateInstanceFrom<IOsInformationProvider>(Config.ProviderTypes.OsInformationProvider);
+					if (_osInformation == null)
+					{
+						OsInformation = new RuntimeOsInformationProvider();
+					}
 				}
 
 				return _osInformation;
@@ -104,6 +140,36 @@ namespace MatterHackers.Agg.Platform
 		public static OSType OperatingSystem => OsInformation.OperatingSystem;
 
 		public static Point2D DesktopSize => OsInformation.DesktopSize;
+
+		private class RuntimeOsInformationProvider : IOsInformationProvider
+		{
+			public OSType OperatingSystem
+			{
+				get
+				{
+					if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+					{
+						return OSType.Windows;
+					}
+
+					if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+					{
+						return OSType.Mac;
+					}
+
+					if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+					{
+						return OSType.X11;
+					}
+
+					return OSType.Other;
+				}
+			}
+
+			public Point2D DesktopSize => new Point2D();
+
+			public long PhysicalMemory => GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+		}
 
 		public static PlatformConfig Config
 		{

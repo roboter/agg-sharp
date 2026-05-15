@@ -1561,9 +1561,13 @@ namespace MatterHackers.Agg.UI
 		/// </summary>
 		public void CloseChildren()
 		{
+			List<GuiWidget> childrenToClose = null;
+
 			Children.Modify(list =>
 			{
-				foreach (var child in list)
+				childrenToClose = list.ToList();
+
+				foreach (var child in childrenToClose)
 				{
 					using (child.LayoutLock())
 					{
@@ -1573,6 +1577,14 @@ namespace MatterHackers.Agg.UI
 
 				list.Clear();
 			});
+
+			foreach (var child in childrenToClose)
+			{
+				if (child.Parent == this && !Children.Contains(child))
+				{
+					child.Parent = null;
+				}
+			}
 		}
 		/// <summary>
 		/// Remove all the children of the widget but do not explicitly call close on them
@@ -2506,8 +2518,12 @@ namespace MatterHackers.Agg.UI
 			if (Parent != null)
 			{
 				// This code will only execute if this is the actual widget we called close on (not a child of the widget we called close on).
-				Parent.RemoveChild(this);
-				this.Parent = null;
+				var parent = Parent;
+				parent.RemoveChild(this);
+				if (Parent == parent && !parent.Children.Contains(this))
+				{
+					Parent = null;
+				}
 			}
 		}
 

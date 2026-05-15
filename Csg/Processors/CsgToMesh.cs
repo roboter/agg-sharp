@@ -76,41 +76,30 @@ namespace MatterHackers.RenderOpenGl
 
 		public static PolygonMesh.Mesh CreateBox(AxisAlignedBoundingBox aabb)
 		{
-			throw new NotImplementedException();
-			//PolygonMesh.Mesh cube = new PolygonMesh.Mesh();
-			//IVertex[] verts = new Vertex[8];
-			////verts[0] = cube.CreateVertex(new Vector3(-1, -1, 1));
-			////verts[1] = cube.CreateVertex(new Vector3(1, -1, 1));
-			////verts[2] = cube.CreateVertex(new Vector3(1, 1, 1));
-			////verts[3] = cube.CreateVertex(new Vector3(-1, 1, 1));
-			////verts[4] = cube.CreateVertex(new Vector3(-1, -1, -1));
-			////verts[5] = cube.CreateVertex(new Vector3(1, -1, -1));
-			////verts[6] = cube.CreateVertex(new Vector3(1, 1, -1));
-			////verts[7] = cube.CreateVertex(new Vector3(-1, 1, -1));
+			PolygonMesh.Mesh cube = new PolygonMesh.Mesh();
+			cube.Vertices.Add(new Vector3(aabb.MinXYZ.X, aabb.MinXYZ.Y, aabb.MaxXYZ.Z));
+			cube.Vertices.Add(new Vector3(aabb.MaxXYZ.X, aabb.MinXYZ.Y, aabb.MaxXYZ.Z));
+			cube.Vertices.Add(new Vector3(aabb.MaxXYZ.X, aabb.MaxXYZ.Y, aabb.MaxXYZ.Z));
+			cube.Vertices.Add(new Vector3(aabb.MinXYZ.X, aabb.MaxXYZ.Y, aabb.MaxXYZ.Z));
+			cube.Vertices.Add(new Vector3(aabb.MinXYZ.X, aabb.MinXYZ.Y, aabb.MinXYZ.Z));
+			cube.Vertices.Add(new Vector3(aabb.MaxXYZ.X, aabb.MinXYZ.Y, aabb.MinXYZ.Z));
+			cube.Vertices.Add(new Vector3(aabb.MaxXYZ.X, aabb.MaxXYZ.Y, aabb.MinXYZ.Z));
+			cube.Vertices.Add(new Vector3(aabb.MinXYZ.X, aabb.MaxXYZ.Y, aabb.MinXYZ.Z));
 
-			//verts[0] = cube.CreateVertex(new Vector3(aabb.minXYZ.X, aabb.minXYZ.Y, aabb.maxXYZ.Z));
-			//verts[1] = cube.CreateVertex(new Vector3(aabb.maxXYZ.X, aabb.minXYZ.Y, aabb.maxXYZ.Z));
-			//verts[2] = cube.CreateVertex(new Vector3(aabb.maxXYZ.X, aabb.maxXYZ.Y, aabb.maxXYZ.Z));
-			//verts[3] = cube.CreateVertex(new Vector3(aabb.minXYZ.X, aabb.maxXYZ.Y, aabb.maxXYZ.Z));
-			//verts[4] = cube.CreateVertex(new Vector3(aabb.minXYZ.X, aabb.minXYZ.Y, aabb.minXYZ.Z));
-			//verts[5] = cube.CreateVertex(new Vector3(aabb.maxXYZ.X, aabb.minXYZ.Y, aabb.minXYZ.Z));
-			//verts[6] = cube.CreateVertex(new Vector3(aabb.maxXYZ.X, aabb.maxXYZ.Y, aabb.minXYZ.Z));
-			//verts[7] = cube.CreateVertex(new Vector3(aabb.minXYZ.X, aabb.maxXYZ.Y, aabb.minXYZ.Z));
+			cube.Faces.Add(0, 1, 2, cube.Vertices);
+			cube.Faces.Add(0, 2, 3, cube.Vertices);
+			cube.Faces.Add(4, 0, 3, cube.Vertices);
+			cube.Faces.Add(4, 3, 7, cube.Vertices);
+			cube.Faces.Add(1, 5, 6, cube.Vertices);
+			cube.Faces.Add(1, 6, 2, cube.Vertices);
+			cube.Faces.Add(4, 7, 6, cube.Vertices);
+			cube.Faces.Add(4, 6, 5, cube.Vertices);
+			cube.Faces.Add(3, 2, 6, cube.Vertices);
+			cube.Faces.Add(3, 6, 7, cube.Vertices);
+			cube.Faces.Add(4, 5, 1, cube.Vertices);
+			cube.Faces.Add(4, 1, 0, cube.Vertices);
 
-			//// front
-			//cube.CreateFace(new IVertex[] { verts[0], verts[1], verts[2], verts[3] });
-			//// left
-			//cube.CreateFace(new IVertex[] { verts[4], verts[0], verts[3], verts[7] });
-			//// right
-			//cube.CreateFace(new IVertex[] { verts[1], verts[5], verts[6], verts[2] });
-			//// back
-			//cube.CreateFace(new IVertex[] { verts[4], verts[7], verts[6], verts[5] });
-			//// top
-			//cube.CreateFace(new IVertex[] { verts[3], verts[2], verts[6], verts[7] });
-			//// bottom
-			//cube.CreateFace(new IVertex[] { verts[4], verts[5], verts[1], verts[0] });
-
-			//return cube;
+			return cube;
 		}
 
 		public PolygonMesh.Mesh CsgToMeshRecursive(Csg.Solids.MeshContainer objectToPrecess)
@@ -120,15 +109,7 @@ namespace MatterHackers.RenderOpenGl
 
 		public PolygonMesh.Mesh CsgToMeshRecursive(BoxPrimitive objectToProcess)
 		{
-			if (objectToProcess.CreateCentered)
-			{
-				//objectToProcess.Size;
-			}
-			else
-			{
-			}
-
-			return PlatonicSolids.CreateCube(objectToProcess.Size);
+			return CreateBox(objectToProcess.GetAxisAlignedBoundingBox());
 		}
 
 		#endregion Box
@@ -137,32 +118,72 @@ namespace MatterHackers.RenderOpenGl
 
 		public static PolygonMesh.Mesh CreateCylinder(Cylinder.CylinderPrimitive cylinderToMeasure)
 		{
-			throw new NotImplementedException();
-			//PolygonMesh.Mesh cylinder = new PolygonMesh.Mesh();
-			//List<IVertex> bottomVerts = new List<IVertex>();
-			//List<IVertex> topVerts = new List<IVertex>();
+			if (cylinderToMeasure.Sides < 3)
+			{
+				throw new ArgumentOutOfRangeException(nameof(cylinderToMeasure), "Cylinder must have at least 3 sides.");
+			}
 
-			//int sides = cylinderToMeasure.Sides;
-			//for (int i = 0; i < sides; i++)
-			//{
-			//	Vector2 bottomRadialPos = Vector2.Rotate(new Vector2(cylinderToMeasure.Radius1, 0), MathHelper.Tau * i / sides);
-			//	IVertex bottomVertex = cylinder.CreateVertex(new Vector3(bottomRadialPos.X, bottomRadialPos.Y, -cylinderToMeasure.Height / 2));
-			//	bottomVerts.Add(bottomVertex);
-			//	Vector2 topRadialPos = Vector2.Rotate(new Vector2(cylinderToMeasure.Radius1, 0), MathHelper.Tau * i / sides);
-			//	IVertex topVertex = cylinder.CreateVertex(new Vector3(topRadialPos.X, topRadialPos.Y, cylinderToMeasure.Height / 2));
-			//	topVerts.Add(topVertex);
-			//}
+			PolygonMesh.Mesh cylinder = new PolygonMesh.Mesh();
+			int sides = cylinderToMeasure.Sides;
+			double bottomZ = -cylinderToMeasure.Height / 2;
+			double topZ = cylinderToMeasure.Height / 2;
+			bool hasBottomRadius = Math.Abs(cylinderToMeasure.Radius1) > double.Epsilon;
+			bool hasTopRadius = Math.Abs(cylinderToMeasure.Radius2) > double.Epsilon;
 
-			//cylinder.ReverseFaceEdges(cylinder.CreateFace(bottomVerts.ToArray()));
-			//cylinder.CreateFace(topVerts.ToArray());
+			int bottomStart = cylinder.Vertices.Count;
+			for (int i = 0; i < sides; i++)
+			{
+				Vector2 radialPosition = Vector2.Rotate(new Vector2(cylinderToMeasure.Radius1, 0), MathHelper.Tau * i / sides);
+				cylinder.Vertices.Add(new Vector3(radialPosition.X, radialPosition.Y, bottomZ));
+			}
 
-			//for (int i = 0; i < sides - 1; i++)
-			//{
-			//	cylinder.CreateFace(new IVertex[] { topVerts[i], bottomVerts[i], bottomVerts[i + 1], topVerts[i + 1] });
-			//}
-			//cylinder.CreateFace(new IVertex[] { topVerts[sides - 1], bottomVerts[sides - 1], bottomVerts[0], topVerts[0] });
+			int topStart = cylinder.Vertices.Count;
+			for (int i = 0; i < sides; i++)
+			{
+				Vector2 radialPosition = Vector2.Rotate(new Vector2(cylinderToMeasure.Radius2, 0), MathHelper.Tau * i / sides);
+				cylinder.Vertices.Add(new Vector3(radialPosition.X, radialPosition.Y, topZ));
+			}
 
-			//return cylinder;
+			int bottomCenter = cylinder.Vertices.Count;
+			cylinder.Vertices.Add(new Vector3(0, 0, bottomZ));
+
+			int topCenter = cylinder.Vertices.Count;
+			cylinder.Vertices.Add(new Vector3(0, 0, topZ));
+
+			for (int i = 0; i < sides; i++)
+			{
+				int next = (i + 1) % sides;
+				int bottom = bottomStart + i;
+				int nextBottom = bottomStart + next;
+				int top = topStart + i;
+				int nextTop = topStart + next;
+
+				if (hasBottomRadius && hasTopRadius)
+				{
+					cylinder.Faces.Add(top, bottom, nextBottom, cylinder.Vertices);
+					cylinder.Faces.Add(top, nextBottom, nextTop, cylinder.Vertices);
+				}
+				else if (hasBottomRadius)
+				{
+					cylinder.Faces.Add(top, bottom, nextBottom, cylinder.Vertices);
+				}
+				else if (hasTopRadius)
+				{
+					cylinder.Faces.Add(top, bottom, nextTop, cylinder.Vertices);
+				}
+
+				if (hasBottomRadius)
+				{
+					cylinder.Faces.Add(bottomCenter, nextBottom, bottom, cylinder.Vertices);
+				}
+
+				if (hasTopRadius)
+				{
+					cylinder.Faces.Add(topCenter, top, nextTop, cylinder.Vertices);
+				}
+			}
+
+			return cylinder;
 		}
 
 		public PolygonMesh.Mesh CsgToMeshRecursive(Cylinder.CylinderPrimitive objectToProcess)
@@ -176,12 +197,15 @@ namespace MatterHackers.RenderOpenGl
 
 		public PolygonMesh.Mesh CsgToMeshRecursive(NGonExtrusion.NGonExtrusionPrimitive objectToProcess)
 		{
-			throw new NotImplementedException();
-#if false
-            info += "cylinder(r1=" + objectToProcess.Radius1.ToString() + ", r2=" + objectToProcess.Radius1.ToString() + ", h=" + objectToProcess.Height.ToString() + ", center=true, $fn=" + objectToProcess.NumSides.ToString() + ");";
+			int sides = (int)Math.Round(objectToProcess.NumSides);
+			var cylinder = new Cylinder.CylinderPrimitive(
+				objectToProcess.Radius1,
+				objectToProcess.Radius1,
+				objectToProcess.Height,
+				sides,
+				string.Empty);
 
-            return ApplyIndent(info);
-#endif
+			return CreateCylinder(cylinder);
 		}
 
 		#endregion NGonExtrusion
@@ -190,11 +214,63 @@ namespace MatterHackers.RenderOpenGl
 
 		public PolygonMesh.Mesh CsgToMeshRecursive(Sphere objectToProcess)
 		{
-			throw new NotImplementedException();
-#if false
-            info += "sphere(" + objectToProcess.Radius.ToString() + ", $fn=40);" ;
-            return ApplyIndent(info);
-#endif
+			const int longitudeSegments = 40;
+			const int latitudeSegments = longitudeSegments / 2;
+			double radius = objectToProcess.Radius;
+			PolygonMesh.Mesh sphere = new PolygonMesh.Mesh();
+
+			int top = sphere.Vertices.Count;
+			sphere.Vertices.Add(new Vector3(0, 0, radius));
+
+			for (int latitude = 1; latitude < latitudeSegments; latitude++)
+			{
+				double theta = Math.PI * latitude / latitudeSegments;
+				double ringRadius = radius * Math.Sin(theta);
+				double z = radius * Math.Cos(theta);
+
+				for (int longitude = 0; longitude < longitudeSegments; longitude++)
+				{
+					double phi = MathHelper.Tau * longitude / longitudeSegments;
+					sphere.Vertices.Add(new Vector3(ringRadius * Math.Cos(phi), ringRadius * Math.Sin(phi), z));
+				}
+			}
+
+			int bottom = sphere.Vertices.Count;
+			sphere.Vertices.Add(new Vector3(0, 0, -radius));
+
+			int RingIndex(int latitude, int longitude)
+			{
+				return 1 + (latitude - 1) * longitudeSegments + longitude % longitudeSegments;
+			}
+
+			for (int longitude = 0; longitude < longitudeSegments; longitude++)
+			{
+				int next = (longitude + 1) % longitudeSegments;
+				sphere.Faces.Add(top, RingIndex(1, longitude), RingIndex(1, next), sphere.Vertices);
+			}
+
+			for (int latitude = 1; latitude < latitudeSegments - 1; latitude++)
+			{
+				for (int longitude = 0; longitude < longitudeSegments; longitude++)
+				{
+					int next = (longitude + 1) % longitudeSegments;
+					int upper = RingIndex(latitude, longitude);
+					int upperNext = RingIndex(latitude, next);
+					int lower = RingIndex(latitude + 1, longitude);
+					int lowerNext = RingIndex(latitude + 1, next);
+
+					sphere.Faces.Add(upper, lower, lowerNext, sphere.Vertices);
+					sphere.Faces.Add(upper, lowerNext, upperNext, sphere.Vertices);
+				}
+			}
+
+			for (int longitude = 0; longitude < longitudeSegments; longitude++)
+			{
+				int next = (longitude + 1) % longitudeSegments;
+				sphere.Faces.Add(bottom, RingIndex(latitudeSegments - 1, next), RingIndex(latitudeSegments - 1, longitude), sphere.Vertices);
+			}
+
+			return sphere;
 		}
 
 		#endregion Sphere
@@ -246,10 +322,9 @@ namespace MatterHackers.RenderOpenGl
 
 		public PolygonMesh.Mesh CsgToMeshRecursive(Intersection objectToProcess)
 		{
-			throw new NotImplementedException();
-#if false
-            return ApplyIndent("intersection()" + "\n{\n" + CsgToMeshRecursive((dynamic)objectToProcess.a, level + 1) + "\n" + CsgToMeshRecursive((dynamic)objectToProcess.b, level + 1) + "\n}");
-#endif
+			PolygonMesh.Mesh a = CsgToMeshRecursive((dynamic)objectToProcess.a);
+			PolygonMesh.Mesh b = CsgToMeshRecursive((dynamic)objectToProcess.b);
+			return PolygonMesh.Csg.CsgOperations.Intersect(a, b);
 		}
 
 		#endregion Intersection

@@ -51,7 +51,10 @@ namespace Agg
     public static class DebugLogger
     {
         private static readonly HashSet<string> debugFilters = new HashSet<string>();
-        private static readonly string debugLogPath = Path.Combine("C:", "Development", "MatterCAD", "debug_log.txt");
+        private static readonly string debugLogPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MatterCAD",
+            "debug_log.txt");
         private static readonly object debugLogLock = new object();
         private static DebugLevel minimumLevel = DebugLevel.Error; // Default to Error level and above
 
@@ -177,6 +180,7 @@ namespace Agg
                 {
                     try
                     {
+                        Directory.CreateDirectory(Path.GetDirectoryName(debugLogPath));
                         var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
                         File.AppendAllText(debugLogPath, $"{timestamp} {logMessage}\n");
                     }
