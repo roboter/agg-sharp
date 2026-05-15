@@ -336,6 +336,9 @@ namespace MatterHackers.Agg.UI
             internalTextWidget.AutoExpandBoundsToText = true;
             AddChild(internalTextWidget);
 
+            CursorColor = _textColor.WithAlpha(175);
+            HighlightColor = _textColor.WithAlpha(100);
+
             UpdateDisplayText();
 
             UpdateLocalBounds();
