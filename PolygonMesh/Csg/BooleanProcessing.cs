@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2019, Lars Brubaker, John Lewin
 All rights reserved.
 
@@ -92,109 +92,101 @@ namespace MatterHackers.PolygonMesh.Csg
 			{
 				var allManifold = items.All(i => i.mesh.IsManifold());
 
-				if (allManifold)
+				if (allManifold && System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
 				{
-					// Convert meshes to MeshLib format
-					var manifolds = new List<ManifoldNET.Manifold>();
-					foreach (var (mesh, matrix) in items)
+					try
 					{
-						var meshCopy = mesh.Copy(CancellationToken.None);
-						meshCopy.Transform(matrix);
-
-						// Convert to vertex and face arrays
-						var vertProperties = new List<float>();
-						var triVerts = new List<uint>();
-
-						foreach (var vertex in meshCopy.Vertices)
+						// Convert meshes to MeshLib format
+						var manifolds = new List<ManifoldNET.Manifold>();
+						foreach (var (mesh, matrix) in items)
 						{
-							vertProperties.Add(vertex.X);
-							vertProperties.Add(vertex.Y);
-							vertProperties.Add(vertex.Z);
+							var meshCopy = mesh.Copy(CancellationToken.None);
+							meshCopy.Transform(matrix);
+
+							// Convert to vertex and face arrays
+							var vertProperties = new List<float>();
+							var triVerts = new List<uint>();
+
+							foreach (var vertex in meshCopy.Vertices)
+							{
+								vertProperties.Add(vertex.X);
+								vertProperties.Add(vertex.Y);
+								vertProperties.Add(vertex.Z);
+							}
+
+							foreach (var face in meshCopy.Faces)
+							{
+								triVerts.Add((uint)face.v0);
+								triVerts.Add((uint)face.v1);
+								triVerts.Add((uint)face.v2);
+							}
+
+							var meshGlData = new ManifoldNET.MeshGLData(vertProperties.ToArray(), triVerts.ToArray());
+							var meshGl = new ManifoldNET.MeshGL(meshGlData);
+
+							manifolds.Add(ManifoldNET.Manifold.Create(meshGl));
 						}
 
-						foreach (var face in meshCopy.Faces)
+						// Perform boolean operation using MeshLib
+						// Convert operation type to MeshLib enum
+						var opperationType = ManifoldNET.BoolOperationType.Add;
+
+						if (operation == CsgModes.Subtract)
 						{
-							triVerts.Add((uint)face.v0);
-							triVerts.Add((uint)face.v1);
-							triVerts.Add((uint)face.v2);
+							opperationType = ManifoldNET.BoolOperationType.Subtract;
+						}
+						else if (operation == CsgModes.Intersect)
+						{
+							opperationType = ManifoldNET.BoolOperationType.Intersect;
 						}
 
-						var meshGlData = new ManifoldNET.MeshGLData(vertProperties.ToArray(), triVerts.ToArray());
-						var meshGl = new ManifoldNET.MeshGL(meshGlData);
-
-						manifolds.Add(ManifoldNET.Manifold.Create(meshGl));
-					}
-
-					// Perform boolean operation using MeshLib
-					// Convert operation type to MeshLib enum
-					var opperationType = ManifoldNET.BoolOperationType.Add;
-
-					if (operation == CsgModes.Subtract)
-					{
-						opperationType = ManifoldNET.BoolOperationType.Subtract;
-					}
-					else if (operation == CsgModes.Intersect)
-					{
-						opperationType = ManifoldNET.BoolOperationType.Intersect;
-					}
-
-					ManifoldNET.MeshGL result = null;
-					// Perform boolean operation on first two meshes
-					if (manifolds.Count >= 2)
-					{
-						try
+						ManifoldNET.MeshGL result = null;
+						// Perform boolean operation on first two meshes
+						if (manifolds.Count >= 2)
 						{
 							result = ManifoldNET.Manifold.BatchBoolOperation(manifolds, opperationType).MeshGL;
 						}
-						catch 
-						{
-                            var csgBySlicing = new CsgBySlicing();
-                            csgBySlicing.Setup(items, null, operation, cancellationToken);
-                            return csgBySlicing.Calculate((ratio, message) =>
-                            {
-                                reporter?.Invoke(ratio * amountPerOperation + ratioCompleted, message);
-                            },
-                            cancellationToken);
-                        }
-                    }
 
-					// Convert result back to Mesh format
-					var resultMesh = new Mesh();
+						// Convert result back to Mesh format
+						var resultMesh = new Mesh();
 
-					if (result != null)
-					{
-						var vertices = result.VerticesProperties;
-						for (int i = 0; i < vertices.Length; i += 3)
+						if (result != null)
 						{
-							resultMesh.Vertices.Add(new Vector3(
-								vertices[i],
-								vertices[i + 1],
-								vertices[i + 2]));
-						}
+							var vertices = result.VerticesProperties;
+							for (int i = 0; i < vertices.Length; i += 3)
+							{
+								resultMesh.Vertices.Add(new Vector3(
+									vertices[i],
+									vertices[i + 1],
+									vertices[i + 2]));
+							}
 
-						var indices = result.TriangleVertices;
-						for (int i = 0; i < indices.Length; i += 3)
-						{
-							resultMesh.Faces.Add(new Face(
-								indices[i],
-								indices[i + 1],
-								indices[i + 2],
-								resultMesh.Vertices));
+							var indices = result.TriangleVertices;
+							for (int i = 0; i < indices.Length; i += 3)
+							{
+								resultMesh.Faces.Add(new Face(
+									indices[i],
+									indices[i + 1],
+									indices[i + 2],
+									resultMesh.Vertices));
+							}
+
+							return resultMesh;
 						}
 					}
-                
-					return resultMesh;
-                }
-                else
-				{
-					var csgBySlicing = new CsgBySlicing();
-					csgBySlicing.Setup(items, null, operation, cancellationToken);
-					return csgBySlicing.Calculate((ratio, message) =>
+					catch 
 					{
-						reporter?.Invoke(ratio * amountPerOperation + ratioCompleted, message);
-					},
-					cancellationToken);
+						// Fall through to CsgBySlicing
+					}
 				}
+
+				var csgBySlicing = new CsgBySlicing();
+				csgBySlicing.Setup(items, null, operation, cancellationToken);
+				return csgBySlicing.Calculate((ratio, message) =>
+				{
+					reporter?.Invoke(ratio * amountPerOperation + ratioCompleted, message);
+				},
+				cancellationToken);
             }
 			else
 			{

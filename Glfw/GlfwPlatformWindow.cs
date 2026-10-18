@@ -238,6 +238,7 @@ namespace MatterHackers.GlfwProvider
 						graphics2D.FillRectangle(this.WindowProvider.OpenWindows[0].LocalBounds, new Agg.Color(Agg.Color.Black, 160));
 					}
 					
+					window.OnDrawBackground(graphics2D);
 					window.OnDraw(graphics2D);
 				}
 
@@ -896,12 +897,7 @@ namespace MatterHackers.GlfwProvider
 
 		private void CloseCallback(Window window)
 		{
-			var closing = new ClosingEventArgs();
-			aggSystemWindow.OnClosing(closing);
-			if (closing.Cancel)
-			{
-				Glfw.SetWindowShouldClose(glfwWindow, false);
-			}
+			aggSystemWindow.Close();
 		}
 
 		private void SizeCallback(Window window, int width, int height)

@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2018, Lars Brubaker, John Lewin
 All rights reserved.
 
@@ -45,6 +45,16 @@ namespace MatterHackers.RenderOpenGl
 		private static glBeginHandler glBegin;
 
 		private static glBindBufferHandler glBindBuffer;
+
+		private static glGenListsHandler glGenLists;
+
+		private static glNewListHandler glNewList;
+
+		private static glEndListHandler glEndList;
+
+		private static glCallListHandler glCallList;
+
+		private static glDeleteListsHandler glDeleteLists;
 
 		private static glBindTextureHandler glBindTexture;
 
@@ -222,10 +232,35 @@ namespace MatterHackers.RenderOpenGl
 				glVertexPointer = Marshal.GetDelegateForFunctionPointer<glVertexPointerHandler>(Glfw.GetProcAddress("glVertexPointer"));
 				glViewport = Marshal.GetDelegateForFunctionPointer<glViewportHandler>(Glfw.GetProcAddress("glViewport"));
 				//glBindFrameBuffer = Marshal.GetDelegateForFunctionPointer<glBindFrameBufferHandler>(Glfw.GetProcAddress("glBindFrameBuffer"));
+
+				var ptrGenLists = Glfw.GetProcAddress("glGenLists");
+				if (ptrGenLists != IntPtr.Zero) glGenLists = Marshal.GetDelegateForFunctionPointer<glGenListsHandler>(ptrGenLists);
+
+				var ptrNewList = Glfw.GetProcAddress("glNewList");
+				if (ptrNewList != IntPtr.Zero) glNewList = Marshal.GetDelegateForFunctionPointer<glNewListHandler>(ptrNewList);
+
+				var ptrEndList = Glfw.GetProcAddress("glEndList");
+				if (ptrEndList != IntPtr.Zero) glEndList = Marshal.GetDelegateForFunctionPointer<glEndListHandler>(ptrEndList);
+
+				var ptrCallList = Glfw.GetProcAddress("glCallList");
+				if (ptrCallList != IntPtr.Zero) glCallList = Marshal.GetDelegateForFunctionPointer<glCallListHandler>(ptrCallList);
+
+				var ptrDeleteLists = Glfw.GetProcAddress("glDeleteLists");
+				if (ptrDeleteLists != IntPtr.Zero) glDeleteLists = Marshal.GetDelegateForFunctionPointer<glDeleteListsHandler>(ptrDeleteLists);
 			}
 		}
 
 #pragma warning disable SA1300 // Element should begin with upper-case letter
+
+		private delegate int glGenListsHandler(int range);
+
+		private delegate void glNewListHandler(int list, int mode);
+
+		private delegate void glEndListHandler();
+
+		private delegate void glCallListHandler(int list);
+
+		private delegate void glDeleteListsHandler(int list, int range);
 
 		private delegate void glBeginHandler(int mode);
 
@@ -1044,6 +1079,40 @@ namespace MatterHackers.RenderOpenGl
         public string GetShaderInfoLog(int shader)
         {
             throw new NotImplementedException();
+        }
+
+        public int GenLists(int v)
+        {
+            if (glGenLists != null)
+            {
+                return glGenLists(v);
+            }
+
+            return 0;
+        }
+
+        public void NewList(int displayListId, object compile)
+        {
+            if (glNewList != null)
+            {
+                int mode = (compile is int m) ? m : 0x1300;
+                glNewList(displayListId, mode);
+            }
+        }
+
+        public void EndList()
+        {
+            glEndList?.Invoke();
+        }
+
+        public void CallList(int displayListId)
+        {
+            glCallList?.Invoke(displayListId);
+        }
+
+        public void DeleteLists(int id, int v)
+        {
+            glDeleteLists?.Invoke(id, v);
         }
     }
 }
