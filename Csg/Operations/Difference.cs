@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2014, Lars Brubaker
 All rights reserved.
 
@@ -32,21 +32,38 @@ using System.Collections.Generic;
 
 namespace MatterHackers.Csg.Operations
 {
+	/// <summary>
+	/// Represents a CSG Boolean Difference (subtraction / cutout) operation carving one or more solids out of a primary solid.
+	/// In code, you can also use the '-' operator: primaryObject - subtractObject.
+	/// </summary>
 	public class Difference : CsgObject
 	{
 		internal CsgObject primary;
 		internal List<CsgObject> allSubtracts = new List<CsgObject>();
 
+		/// <summary>The base solid from which subsequent solids are carved out.</summary>
 		public CsgObject Primary { get { return primary; } }
 
+		/// <summary>The collection of solids subtracted from the primary solid.</summary>
 		public List<CsgObject> AllSubtracts { get { return allSubtracts; } }
 
+		/// <summary>
+		/// Creates a Difference operation container initialized with a primary solid.
+		/// </summary>
+		/// <param name="primary">The solid to subtract from.</param>
+		/// <param name="name">Optional identifier name.</param>
 		public Difference(CsgObject primary, string name = "")
 			: base(name)
 		{
 			this.primary = primary;
 		}
 
+		/// <summary>
+		/// Subtracts one solid from another (primary - subtract).
+		/// </summary>
+		/// <param name="primary">The solid being carved into.</param>
+		/// <param name="subtract">The solid being removed from the primary.</param>
+		/// <param name="name">Optional identifier name.</param>
 		public Difference(CsgObject primary, CsgObject subtract, string name = "")
 			: base(name)
 		{

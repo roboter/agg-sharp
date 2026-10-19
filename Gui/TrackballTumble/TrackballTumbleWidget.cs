@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2018, Lars Brubaker, John Lewin
 All rights reserved.
 
@@ -80,12 +80,12 @@ namespace MatterHackers.Agg
 		private readonly int updatesPerSecond = 30;
 		private readonly WorldView world;
 
-		public TrackballTumbleWidget(WorldView world, GuiWidget sourceWidget)
+		public TrackballTumbleWidget(WorldView world, GuiWidget sourceWidget = null)
 		{
 			AnchorAll();
 			TrackBallController = new TrackBallController(world);
 			this.world = world;
-			this.sourceWidget = sourceWidget;
+			this.sourceWidget = sourceWidget ?? this;
 		}
 
 		public delegate void NearFarAction(out double zNear, out double zFar);

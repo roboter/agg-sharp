@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2014, Lars Brubaker
 All rights reserved.
 
@@ -167,6 +167,219 @@ namespace MatterHackers.Csg
 		public double ZSize { get { return Size.Z; } }
 
 		#endregion Size Functions
+
+		#region Geometric Properties & Inspection
+
+		public AxisAlignedBoundingBox Bounds => GetAxisAlignedBoundingBox();
+		public AxisAlignedBoundingBox BoundingBox => GetAxisAlignedBoundingBox();
+		public Vector3 Center => GetCenter();
+		public Vector3 Min => Bounds.MinXYZ;
+		public Vector3 Max => Bounds.MaxXYZ;
+
+		// Face center anchor points
+		public Vector3 TopCenter => new Vector3(Center.X, Center.Y, Max.Z);
+		public Vector3 BottomCenter => new Vector3(Center.X, Center.Y, Min.Z);
+		public Vector3 LeftCenter => new Vector3(Min.X, Center.Y, Center.Z);
+		public Vector3 RightCenter => new Vector3(Max.X, Center.Y, Center.Z);
+		public Vector3 FrontCenter => new Vector3(Center.X, Min.Y, Center.Z);
+		public Vector3 BackCenter => new Vector3(Center.X, Max.Y, Center.Z);
+
+		/// <summary>
+		/// Returns the 8 corner points of the bounding box.
+		/// </summary>
+		public Vector3[] GetCorners()
+		{
+			var min = Min;
+			var max = Max;
+			return new Vector3[]
+			{
+				new Vector3(min.X, min.Y, min.Z), // 0: Bottom-Front-Left
+				new Vector3(max.X, min.Y, min.Z), // 1: Bottom-Front-Right
+				new Vector3(max.X, max.Y, min.Z), // 2: Bottom-Back-Right
+				new Vector3(min.X, max.Y, min.Z), // 3: Bottom-Back-Left
+				new Vector3(min.X, min.Y, max.Z), // 4: Top-Front-Left
+				new Vector3(max.X, min.Y, max.Z), // 5: Top-Front-Right
+				new Vector3(max.X, max.Y, max.Z), // 6: Top-Back-Right
+				new Vector3(min.X, max.Y, max.Z), // 7: Top-Back-Left
+			};
+		}
+
+		/// <summary>
+		/// Returns the 12 edges of the bounding box as line segments (Start, End).
+		/// </summary>
+		public (Vector3 Start, Vector3 End)[] GetBoundingEdges()
+		{
+			var c = GetCorners();
+			return new (Vector3, Vector3)[]
+			{
+				// Bottom 4 edges
+				(c[0], c[1]), (c[1], c[2]), (c[2], c[3]), (c[3], c[0]),
+				// Top 4 edges
+				(c[4], c[5]), (c[5], c[6]), (c[6], c[7]), (c[7], c[4]),
+				// Vertical 4 pillars
+				(c[0], c[4]), (c[1], c[5]), (c[2], c[6]), (c[3], c[7])
+			};
+		}
+
+		/// <summary>
+		/// Returns the 12 bounding edges as Line primitive objects.
+		/// </summary>
+		public Solids.Line[] GetLines()
+		{
+			var edges = GetBoundingEdges();
+			var lines = new Solids.Line[edges.Length];
+			for (int i = 0; i < edges.Length; i++)
+			{
+				lines[i] = new Solids.Line(edges[i].Start, edges[i].End);
+			}
+			return lines;
+		}
+
+		public Solids.Line[] Lines => GetLines();
+
+		/// <summary>
+		/// Returns unique vertices as Point primitive objects.
+		/// </summary>
+		public Solids.Point[] GetPoints(double tolerance = 1e-4)
+		{
+			var unique = GetUniqueVertices(tolerance);
+			var pts = new Solids.Point[unique.Count];
+			for (int i = 0; i < unique.Count; i++)
+			{
+				pts[i] = new Solids.Point(unique[i]);
+			}
+			return pts;
+		}
+
+		public Solids.Point[] CornerPoints => GetPoints();
+
+		/// <summary>
+		/// Evaluates the CSG tree into a triangulated 3D mesh.
+		/// </summary>
+		public PolygonMesh.Mesh ToMesh()
+		{
+			return MatterHackers.RenderOpenGl.CsgToMesh.Convert(this);
+		}
+
+		/// <summary>
+		/// Gets all vertices of the evaluated 3D mesh.
+		/// </summary>
+		public List<Vector3> GetVertices()
+		{
+			var mesh = ToMesh();
+			var result = new List<Vector3>(mesh.Vertices.Count);
+			for (int i = 0; i < mesh.Vertices.Count; i++)
+			{
+				var v = mesh.Vertices[i];
+				result.Add(new Vector3(v.X, v.Y, v.Z));
+			}
+			return result;
+		}
+
+		/// <summary>
+		/// Gets unique vertices of the evaluated 3D mesh (e.g. 8 corner points for a cube).
+		/// </summary>
+		public List<Vector3> GetUniqueVertices(double tolerance = 1e-4)
+		{
+			var raw = GetVertices();
+			var unique = new List<Vector3>();
+			double tolSq = tolerance * tolerance;
+			foreach (var pt in raw)
+			{
+				bool found = false;
+				for (int i = 0; i < unique.Count; i++)
+				{
+					if ((unique[i] - pt).LengthSquared <= tolSq)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (!found)
+				{
+					unique.Add(pt);
+				}
+			}
+			return unique;
+		}
+
+		/// <summary>
+		/// Gets all unique edges of the evaluated 3D mesh as (Start, End) pairs.
+		/// </summary>
+		public List<(Vector3 Start, Vector3 End)> GetEdges(double tolerance = 1e-4)
+		{
+			var mesh = ToMesh();
+			var edges = new List<(Vector3 Start, Vector3 End)>();
+			if (mesh == null || mesh.Faces.Count == 0) return edges;
+
+			var uniquePoints = new List<Vector3>();
+			var canonicalIndex = new int[mesh.Vertices.Count];
+
+			for (int i = 0; i < mesh.Vertices.Count; i++)
+			{
+				var v = new Vector3(mesh.Vertices[i].X, mesh.Vertices[i].Y, mesh.Vertices[i].Z);
+				int found = -1;
+				for (int u = 0; u < uniquePoints.Count; u++)
+				{
+					if (Math.Abs(uniquePoints[u].X - v.X) <= tolerance &&
+					    Math.Abs(uniquePoints[u].Y - v.Y) <= tolerance &&
+					    Math.Abs(uniquePoints[u].Z - v.Z) <= tolerance)
+					{
+						found = u;
+						break;
+					}
+				}
+				if (found == -1)
+				{
+					canonicalIndex[i] = uniquePoints.Count;
+					uniquePoints.Add(v);
+				}
+				else
+				{
+					canonicalIndex[i] = found;
+				}
+			}
+
+			var edgeSet = new HashSet<(int, int)>();
+			void AddEdge(int i1, int i2)
+			{
+				if (i1 < 0 || i2 < 0 || i1 >= mesh.Vertices.Count || i2 >= mesh.Vertices.Count)
+					return;
+				int c1 = canonicalIndex[i1];
+				int c2 = canonicalIndex[i2];
+				if (c1 == c2) return;
+				int min = Math.Min(c1, c2);
+				int max = Math.Max(c1, c2);
+				if (edgeSet.Add((min, max)))
+				{
+					edges.Add((uniquePoints[c1], uniquePoints[c2]));
+				}
+			}
+
+			foreach (var face in mesh.Faces)
+			{
+				AddEdge(face.v0, face.v1);
+				AddEdge(face.v1, face.v2);
+				AddEdge(face.v2, face.v0);
+			}
+
+			return edges;
+		}
+
+		#region Fluent Transformations
+
+		public CsgObject Translate(double x, double y, double z) => new Translate(this, x, y, z);
+		public CsgObject Translate(Vector3 offset) => new Translate(this, offset);
+		public CsgObject Rotate(double x = 0, double y = 0, double z = 0) => new Rotate(this, x, y, z);
+		public CsgObject RotateDegrees(double x = 0, double y = 0, double z = 0) =>
+			new Rotate(this, MathHelper.DegreesToRadians(x), MathHelper.DegreesToRadians(y), MathHelper.DegreesToRadians(z));
+		public CsgObject Scale(double scale) => new Scale(this, scale);
+		public CsgObject Scale(double x, double y, double z) => new Scale(this, x, y, z);
+		public CsgObject Scale(Vector3 scale) => new Scale(this, scale);
+
+		#endregion Fluent Transformations
+
+		#endregion Geometric Properties & Inspection
 
 		#region Mirror Functions
 

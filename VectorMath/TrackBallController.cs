@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2018, Lars Brubaker, John Lewin
 All rights reserved.
 
@@ -200,6 +200,7 @@ namespace MatterHackers.VectorMath.TrackBall
 		{
 			switch (CurrentTrackingType)
 			{
+				case TrackBallTransformType.None:
 				case TrackBallTransformType.Rotation:
 					break;
 
@@ -211,7 +212,7 @@ namespace MatterHackers.VectorMath.TrackBall
 					break;
 
 				default:
-					throw new NotImplementedException();
+					break;
 			}
 			CurrentTrackingType = TrackBallTransformType.None;
 		}

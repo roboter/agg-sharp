@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2014, Lars Brubaker
 All rights reserved.
 
@@ -34,24 +34,63 @@ using System;
 
 namespace MatterHackers.Csg.Solids
 {
+	/// <summary>
+	/// Represents an axis-aligned 3D box (cuboid) solid defined by dimensions along X, Y, and Z.
+	/// Supports centered or corner origin, edge beveling/chamfering, and topology queries (corners, edges, lines, points).
+	/// </summary>
 	public class Box : CsgObjectWrapper
 	{
+		/// <summary>
+		/// Creates a new 3D box solid with dimensions specified along X, Y, and Z.
+		/// </summary>
+		/// <param name="sizeX">Width of the box along the X axis.</param>
+		/// <param name="sizeY">Depth of the box along the Y axis.</param>
+		/// <param name="sizeZ">Height of the box along the Z axis.</param>
+		/// <param name="name">Optional identifier name for the solid.</param>
+		/// <param name="createCentered">If true (default), the origin is at the center (bounding box [-size/2, size/2]). If false, origin is at minimum corner [0, size].</param>
 		public Box(double sizeX, double sizeY, double sizeZ, string name = "", bool createCentered = true)
 			: this(new Vector3(sizeX, sizeY, sizeZ), name, createCentered)
 		{
 		}
 
+		/// <summary>
+		/// Creates a new 3D box solid with dimensions specified by a Vector3 size.
+		/// </summary>
+		/// <param name="size">Vector containing the (X, Y, Z) dimensions of the box.</param>
+		/// <param name="name">Optional identifier name for the solid.</param>
+		/// <param name="createCentered">If true (default), the origin is at the center. If false, origin is at minimum corner.</param>
 		public Box(Vector3 size, string name = "", bool createCentered = true)
 			: base(name)
 		{
 			root = new BoxPrimitive(size, name, createCentered);
 		}
 
+		/// <summary>Width of the box along the X axis.</summary>
+		public double Width => Size.X;
+
+		/// <summary>Depth of the box along the Y axis.</summary>
+		public double Depth => Size.Y;
+
+		/// <summary>Height of the box along the Z axis.</summary>
+		public double Height => Size.Z;
+
+		/// <summary>Gets the 8 3D corner vertex positions of the box.</summary>
+		public Vector3[] Corners => GetCorners();
+
+		/// <summary>Gets the 12 bounding edges of the box as (Start, End) coordinate pairs.</summary>
+		public (Vector3 Start, Vector3 End)[] BoundingEdges => GetBoundingEdges();
+
+		/// <summary>Gets the 8 corner vertices as compatible 2D/3D Point primitive objects for LINQ queries.</summary>
+		public Point[] Points => GetPoints();
+
+		/// <summary>Gets the 12 bounding edges as compatible Line primitive objects for LINQ queries.</summary>
+		public new Line[] Lines => GetLines();
+
 		/// <summary>
 		/// Cut along the diagonal of a give edge to the opposite edge.  The edge is chosen by saying
 		/// which 2 faces are to be kept solid, and or-ing them together.
 		/// </summary>
-		/// <param name="facesThatShareEdge">The two faces to maintain after the cut, or-ed together with '|'.</param>
+		/// <param name="facesToKeepWhole">The two faces to maintain after the cut, or-ed together with '|'.</param>
 		public void CutAlongDiagonal(Face facesToKeepWhole)
 		{
 			switch (facesToKeepWhole)
@@ -213,8 +252,8 @@ namespace MatterHackers.Csg.Solids
 		/// <summary>
 		/// Will cause a chamfered flat to be applied to the given edge.
 		/// </summary>
-		/// <param name="facesThatShareEdge"></param>
-		/// <param name="ratioOfEdgeToCut">Cut depth is the depth at the center (much like the radius of a fillet.</param>
+		/// <param name="facesThatShareEdge">The faces sharing the edge to chamfer.</param>
+		/// <param name="cutDepth">Cut depth is the depth at the center (much like the radius of a fillet).</param>
 		public void ChamferEdge(Face facesThatShareEdge, double cutDepth)
 		{
 			Round roundToApply = new Round(Size)

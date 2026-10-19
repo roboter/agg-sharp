@@ -18,7 +18,7 @@ namespace MatterHackers.Csg.Solids
         public double Height { get; }
         public double TwistDegrees { get; }
         public int Slices { get; }
-        public double Scale { get; }
+        public new double Scale { get; }
         public bool Centered { get; }
         public Alignment Alignment { get; }
         public int Resolution { get; }

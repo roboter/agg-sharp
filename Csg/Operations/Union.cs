@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2014, Lars Brubaker
 All rights reserved.
 
@@ -32,17 +32,32 @@ using System.Collections.Generic;
 
 namespace MatterHackers.Csg.Operations
 {
+	/// <summary>
+	/// Represents a CSG Boolean Union (addition / merge) operation combining two or more 3D objects into a single solid.
+	/// In code, you can also use the '+' operator: objectA + objectB.
+	/// </summary>
 	public class Union : CsgObject
 	{
 		internal List<CsgObject> allObjects = new List<CsgObject>();
 
+		/// <summary>Gets the list of all participating CSG objects in this union.</summary>
 		public List<CsgObject> AllObjects { get { return allObjects; } }
 
+		/// <summary>
+		/// Creates an empty Union container.
+		/// </summary>
+		/// <param name="name">Optional identifier name.</param>
 		public Union(string name = "")
 			: base(name)
 		{
 		}
 
+		/// <summary>
+		/// Combines two CSG objects into a unified solid (A + B).
+		/// </summary>
+		/// <param name="a">The first solid.</param>
+		/// <param name="b">The second solid.</param>
+		/// <param name="name">Optional identifier name.</param>
 		public Union(CsgObject a, CsgObject b, string name = "")
 			: base(name)
 		{

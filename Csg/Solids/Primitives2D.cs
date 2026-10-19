@@ -93,39 +93,112 @@ namespace MatterHackers.Csg.Solids
         }
     }
 
-    #region Dot
+    #region Point
 
     /// <summary>
-    /// Represents a 2D point / dot primitive.
-    /// Note: A dot is 0-dimensional with zero area, so attempting to extrude or revolve it directly will fail validation.
+    /// Represents a 2D or 3D coordinate point (X, Y, Z).
+    /// Fully compatible with Vector2, Vector3, tuples (x, y) / (x, y, z), Dot, and Line.
     /// </summary>
-    public class Dot : I2DPrimitive
+    public class Point : I2DPrimitive, IEquatable<Point>
     {
         public double X { get; set; }
         public double Y { get; set; }
+        public double Z { get; set; }
 
-        public Vector2 Position
+        public Vector2 Position2D
         {
             get => new Vector2(X, Y);
             set { X = value.X; Y = value.Y; }
         }
 
+        public Vector3 Position3D
+        {
+            get => new Vector3(X, Y, Z);
+            set { X = value.X; Y = value.Y; Z = value.Z; }
+        }
+
+        public Vector2 Position
+        {
+            get => Position2D;
+            set => Position2D = value;
+        }
+
         public bool IsClosed => false;
 
-        public Dot(double x, double y)
+        public Point(double x, double y, double z = 0)
         {
             X = x;
             Y = y;
+            Z = z;
         }
 
-        public Dot(Vector2 pos) : this(pos.X, pos.Y) { }
+        public Point(double x, double y) : this(x, y, 0) { }
 
-        public Dot() : this(0, 0) { }
+        public Point(Vector2 pos) : this(pos.X, pos.Y, 0) { }
+
+        public Point(Vector3 pos) : this(pos.X, pos.Y, pos.Z) { }
+
+        public Point() : this(0, 0, 0) { }
+
+        // Distance & Line helpers
+        public double DistanceTo(Point other) => (Position3D - (other?.Position3D ?? Vector3.Zero)).Length;
+        public double DistanceTo(Vector3 other) => (Position3D - other).Length;
+        public double DistanceTo(Vector2 other) => (Position2D - other).Length;
+
+        public Line LineTo(Point other) => new Line(this, other);
+        public Line LineTo(Vector3 other) => new Line(this, new Point(other));
+        public Line LineTo(Vector2 other) => new Line(this, new Point(other));
+        public Line LineTo(double x, double y, double z = 0) => new Line(this, new Point(x, y, z));
+
+        // Implicit conversions
+        public static implicit operator Vector2(Point p) => p == null ? Vector2.Zero : new Vector2(p.X, p.Y);
+        public static implicit operator Vector3(Point p) => p == null ? Vector3.Zero : new Vector3(p.X, p.Y, p.Z);
+        public static implicit operator Point(Vector2 v) => new Point(v.X, v.Y, 0);
+        public static implicit operator Point(Vector3 v) => new Point(v.X, v.Y, v.Z);
+        public static implicit operator Point((double x, double y) t) => new Point(t.x, t.y, 0);
+        public static implicit operator Point((double x, double y, double z) t) => new Point(t.x, t.y, t.z);
+
+        // Operators
+        public static Point operator +(Point a, Point b) => new Point(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+        public static Point operator -(Point a, Point b) => new Point(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
+        public static Point operator *(Point a, double scale) => new Point(a.X * scale, a.Y * scale, a.Z * scale);
+        public static Point operator /(Point a, double scale) => new Point(a.X / scale, a.Y / scale, a.Z / scale);
+        public static Point operator -(Point a) => new Point(-a.X, -a.Y, -a.Z);
+
+        // Deconstruction
+        public void Deconstruct(out double x, out double y) { x = X; y = Y; }
+        public void Deconstruct(out double x, out double y, out double z) { x = X; y = Y; z = Z; }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Point p) return Equals(p);
+            if (obj is Vector3 v3) return Math.Abs(X - v3.X) < 1e-6 && Math.Abs(Y - v3.Y) < 1e-6 && Math.Abs(Z - v3.Z) < 1e-6;
+            if (obj is Vector2 v2) return Math.Abs(X - v2.X) < 1e-6 && Math.Abs(Y - v2.Y) < 1e-6 && Math.Abs(Z) < 1e-6;
+            return false;
+        }
+
+        public bool Equals(Point other)
+        {
+            if (other is null) return false;
+            return Math.Abs(X - other.X) < 1e-6 && Math.Abs(Y - other.Y) < 1e-6 && Math.Abs(Z - other.Z) < 1e-6;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = Math.Round(X, 4).GetHashCode();
+                hash = (hash * 397) ^ Math.Round(Y, 4).GetHashCode();
+                hash = (hash * 397) ^ Math.Round(Z, 4).GetHashCode();
+                return hash;
+            }
+        }
 
         public void ValidateClosed(string operationName = "extrude")
         {
+            string typeName = GetType().Name;
             throw new InvalidOperationException(
-                $"Cannot {operationName} a Dot at ({X:0.##}, {Y:0.##}): a dot is a 0-dimensional point without area or boundary. " +
+                $"Cannot {operationName} a {typeName} at ({X:0.##}, {Y:0.##}): a {typeName.ToLower()} is a 0-dimensional point without area or boundary. " +
                 $"A closed 2D shape (such as Circle, Rectangle, Square, or closed Path) is required.");
         }
 
@@ -172,20 +245,40 @@ namespace MatterHackers.Csg.Solids
             return null;
         }
 
-        public Mesh ToMesh()
-        {
-            // A dot is rendered as a small circular disc for visualization
-            return new Ellipse(Position, 0.5, 0.5, 16).TriangulateFaces();
-        }
+        public Mesh ToMesh() => ToWireMesh(0.5);
 
         public Mesh ToWireMesh(double width = 0.5)
         {
-            return new Ellipse(Position, width, width, 16).TriangulateFaces();
+            if (Math.Abs(Z) > 1e-6)
+            {
+                return MatterHackers.RenderOpenGl.CsgToMesh.Convert(new Sphere(width).Translate(Position3D));
+            }
+            return new Ellipse(Position2D, width, width, 16).TriangulateFaces();
         }
 
-        public Circle ToCircle(double radius) => new Circle(Position, radius);
+        public Circle ToCircle(double radius) => new Circle(Position2D, radius);
+        public CsgObject ToSphere(double radius) => new Sphere(radius).Translate(Position3D);
 
-        public Path ToPath() => new Path().MoveTo(Position);
+        public Path ToPath() => new Path().MoveTo(Position2D);
+
+        public override string ToString() => Math.Abs(Z) > 1e-6 ? $"Point({X}, {Y}, {Z})" : $"Point({X}, {Y})";
+    }
+
+    #endregion Point
+
+    #region Dot
+
+    /// <summary>
+    /// Represents a 2D point / dot primitive (specialization of Point).
+    /// Note: A dot is 0-dimensional with zero area, so attempting to extrude or revolve it directly will fail validation.
+    /// </summary>
+    public class Dot : Point
+    {
+        public Dot(double x, double y) : base(x, y, 0) { }
+
+        public Dot(Vector2 pos) : base(pos.X, pos.Y, 0) { }
+
+        public Dot() : base(0, 0, 0) { }
 
         public override string ToString() => $"Dot({X}, {Y})";
     }
@@ -195,42 +288,115 @@ namespace MatterHackers.Csg.Solids
     #region Line
 
     /// <summary>
-    /// Represents a 2D line segment between two points.
+    /// Represents a 2D or 3D line segment between two points.
+    /// Supports length, height (compatible with Cylinder height), direction, midpoints, and cylinder conversion.
     /// Note: A line is an open 1D segment with zero enclosed area, so attempting to extrude or revolve it directly will fail validation.
     /// Combine lines in a closed Path (with path.Close()) to form extrudable boundaries.
     /// </summary>
     public class Line : I2DPrimitive
     {
-        public Vector2 Start { get; set; }
-        public Vector2 End { get; set; }
+        private Vector3 start3D;
+        private Vector3 end3D;
 
-        public double X1 => Start.X;
-        public double Y1 => Start.Y;
-        public double X2 => End.X;
-        public double Y2 => End.Y;
+        public Vector3 Start3D
+        {
+            get => start3D;
+            set => start3D = value;
+        }
 
-        public double Length => (End - Start).Length;
+        public Vector3 End3D
+        {
+            get => end3D;
+            set => end3D = value;
+        }
 
-        public bool IsClosed => (Start - End).LengthSquared < 1e-9;
+        public Point StartPoint
+        {
+            get => new Point(start3D);
+            set => start3D = value != null ? value.Position3D : Vector3.Zero;
+        }
+
+        public Point EndPoint
+        {
+            get => new Point(end3D);
+            set => end3D = value != null ? value.Position3D : Vector3.Zero;
+        }
+
+        public Vector2 Start
+        {
+            get => new Vector2(start3D.X, start3D.Y);
+            set => start3D = new Vector3(value.X, value.Y, start3D.Z);
+        }
+
+        public Vector2 End
+        {
+            get => new Vector2(end3D.X, end3D.Y);
+            set => end3D = new Vector3(value.X, value.Y, end3D.Z);
+        }
+
+        public double X1 => start3D.X;
+        public double Y1 => start3D.Y;
+        public double Z1 => start3D.Z;
+        public double X2 => end3D.X;
+        public double Y2 => end3D.Y;
+        public double Z2 => end3D.Z;
+
+        public double Dx => end3D.X - start3D.X;
+        public double Dy => end3D.Y - start3D.Y;
+        public double Dz => end3D.Z - start3D.Z;
+
+        public double Length => (end3D - start3D).Length;
+
+        /// <summary>
+        /// The height/length of this line segment. Directly compatible with Cylinder height.
+        /// </summary>
+        public double Height => Length;
+
+        public Vector3 MidPoint3D => (start3D + end3D) * 0.5;
+        public Point MidPoint => new Point(MidPoint3D);
+
+        public Vector3 Direction => Length > 1e-9 ? (end3D - start3D).GetNormal() : Vector3.UnitZ;
+
+        public bool IsClosed => (start3D - end3D).LengthSquared < 1e-9;
+
+        public Line(Point start, Point end)
+        {
+            start3D = start != null ? start.Position3D : Vector3.Zero;
+            end3D = end != null ? end.Position3D : Vector3.Zero;
+        }
+
+        public Line(Vector3 start, Vector3 end)
+        {
+            start3D = start;
+            end3D = end;
+        }
 
         public Line(Vector2 start, Vector2 end)
         {
-            Start = start;
-            End = end;
+            start3D = new Vector3(start.X, start.Y, 0);
+            end3D = new Vector3(end.X, end.Y, 0);
         }
 
         public Line(double x1, double y1, double x2, double y2)
             : this(new Vector2(x1, y1), new Vector2(x2, y2)) { }
 
+        public Line(double x1, double y1, double z1, double x2, double y2, double z2)
+            : this(new Vector3(x1, y1, z1), new Vector3(x2, y2, z2)) { }
+
         public Line(double length, double angleRadians = 0)
             : this(Vector2.Zero, new Vector2(length * Math.Cos(angleRadians), length * Math.Sin(angleRadians))) { }
+
+        public Line() : this(Vector3.Zero, Vector3.Zero) { }
+
+        // Implicit conversions
+        public static implicit operator Line((Point start, Point end) t) => new Line(t.start, t.end);
 
         public void ValidateClosed(string operationName = "extrude")
         {
             if (!IsClosed)
             {
                 throw new InvalidOperationException(
-                    $"Cannot {operationName} an open Line from ({Start.X:0.##}, {Start.Y:0.##}) to ({End.X:0.##}, {End.Y:0.##}): " +
+                    $"Cannot {operationName} an open Line from ({X1:0.##}, {Y1:0.##}) to ({X2:0.##}, {Y2:0.##}): " +
                     $"a line is a 1-dimensional open segment and does not enclose a 2D area. " +
                     $"Combine lines into a closed Path (using path.Close()), or use Rectangle/Polygon.");
             }
@@ -289,13 +455,21 @@ namespace MatterHackers.Csg.Solids
 
         public Mesh ToWireMesh(double width = 0.5)
         {
+            if (Math.Abs(start3D.Z) > 1e-6 || Math.Abs(end3D.Z) > 1e-6)
+            {
+                return MatterHackers.RenderOpenGl.CsgToMesh.Convert(Cylinder.CreateBetween(start3D, end3D, width * 0.5, 16));
+            }
             var stroke = new Stroke(ToVertexSource(), width);
             return stroke.TriangulateFaces();
         }
 
+        public CsgObject ToCylinder(double radius, int sides = 16) => Cylinder.CreateBetween(start3D, end3D, radius, sides);
+
         public Path ToPath() => new Path().MoveTo(Start).LineTo(End);
 
-        public override string ToString() => $"Line(({Start.X}, {Start.Y}) -> ({End.X}, {End.Y}))";
+        public override string ToString() => Math.Abs(Z1) > 1e-6 || Math.Abs(Z2) > 1e-6
+            ? $"Line(({X1}, {Y1}, {Z1}) -> ({X2}, {Y2}, {Z2}))"
+            : $"Line(({X1}, {Y1}) -> ({X2}, {Y2}))";
     }
 
     #endregion Line
@@ -923,6 +1097,7 @@ namespace MatterHackers.Csg.Solids
     public class Line2D : Line
     {
         public Line2D(Vector2 start, Vector2 end) : base(start, end) { }
+        public Line2D(Point start, Point end) : base(start, end) { }
         public Line2D(double x1, double y1, double x2, double y2) : base(x1, y1, x2, y2) { }
         public Line2D(double length, double angleRadians = 0) : base(length, angleRadians) { }
     }
@@ -934,11 +1109,18 @@ namespace MatterHackers.Csg.Solids
         public Dot2D() : base() { }
     }
 
-    public class Point2D : Dot
+    public class Point2D : Point
     {
-        public Point2D(double x, double y) : base(x, y) { }
+        public Point2D(double x, double y) : base(x, y, 0) { }
         public Point2D(Vector2 pos) : base(pos) { }
-        public Point2D() : base() { }
+        public Point2D() : base(0, 0, 0) { }
+    }
+
+    public class Point3D : Point
+    {
+        public Point3D(double x, double y, double z) : base(x, y, z) { }
+        public Point3D(Vector3 pos) : base(pos) { }
+        public Point3D() : base(0, 0, 0) { }
     }
 
     public class Circle2D : Circle

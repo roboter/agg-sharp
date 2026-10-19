@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2014, Lars Brubaker
 All rights reserved.
 
@@ -31,10 +31,19 @@ using MatterHackers.VectorMath;
 
 namespace MatterHackers.Csg.Transform
 {
+	/// <summary>
+	/// Represents a 3D rotation transformation applied to a CSG object around the X, Y, and Z axes (angles in radians).
+	/// </summary>
 	public class Rotate : TransformBase
 	{
 		private Vector3 rotateCache;
 
+		/// <summary>
+		/// Rotates a CSG object using Euler angles in radians specified in a Vector3 (X, Y, Z).
+		/// </summary>
+		/// <param name="objectToRotate">The CSG object to rotate in 3D space.</param>
+		/// <param name="radians">Vector containing Euler rotation angles (in radians) around X, Y, and Z.</param>
+		/// <param name="name">Optional identifier name.</param>
 		public Rotate(CsgObject objectToRotate, Vector3 radians, string name = "")
 			: base(objectToRotate, name)
 		{
@@ -42,6 +51,15 @@ namespace MatterHackers.Csg.Transform
 			transform = Matrix4X4.CreateRotation(radians);
 		}
 
+		/// <summary>
+		/// Rotates a CSG object using explicit Euler angles in radians around the X, Y, and Z axes.
+		/// Tip: Use MathHelper.DegreesToRadians(degrees) to convert degrees to radians.
+		/// </summary>
+		/// <param name="objectToRotate">The CSG object to rotate in 3D space.</param>
+		/// <param name="x">Rotation angle around the X axis in radians (default: 0).</param>
+		/// <param name="y">Rotation angle around the Y axis in radians (default: 0).</param>
+		/// <param name="z">Rotation angle around the Z axis in radians (default: 0).</param>
+		/// <param name="name">Optional identifier name.</param>
 		public Rotate(CsgObject objectToRotate, double x = 0, double y = 0, double z = 0, string name = "")
 			: this(objectToRotate, new Vector3(x, y, z), name)
 		{

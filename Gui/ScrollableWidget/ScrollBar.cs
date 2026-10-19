@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2014, Lars Brubaker
 All rights reserved.
 
@@ -131,7 +131,8 @@ namespace MatterHackers.Agg.UI
 			get
 			{
 				Vector2 ratioOfViewToContents0To1 = parentScrollWidget.RatioOfViewToContents0To1();
-				return ratioOfViewToContents0To1.Y * parentScrollWidget.Height;
+				double calculated = ratioOfViewToContents0To1.Y * parentScrollWidget.Height;
+				return Math.Max(20 * GuiWidget.DeviceScale, Math.Min(parentScrollWidget.Height, calculated));
 			}
 		}
 

@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2014, Lars Brubaker
 All rights reserved.
 
@@ -31,18 +31,31 @@ using MatterHackers.VectorMath;
 
 namespace MatterHackers.Csg.Solids
 {
+	/// <summary>
+	/// Represents a 3D spherical solid centered at the origin (0, 0, 0) with a specified radius.
+	/// </summary>
 	public class Sphere : Solid
 	{
 		internal double radius;
 
+		/// <summary>Radius of the sphere.</summary>
 		public double Radius { get { return radius; } }
 
+		/// <summary>
+		/// Creates a new 3D sphere solid with specified radius.
+		/// </summary>
+		/// <param name="radius">Radius of the sphere from the origin.</param>
+		/// <param name="name">Optional identifier name for the solid.</param>
 		public Sphere(double radius, string name = "")
 			: base(name)
 		{
 			this.radius = radius;
 		}
 
+		/// <summary>
+		/// Creates a copy of an existing 3D sphere solid.
+		/// </summary>
+		/// <param name="objectToCopy">The source sphere to duplicate.</param>
 		public Sphere(Sphere objectToCopy)
 			: this(objectToCopy.radius, objectToCopy.name)
 		{

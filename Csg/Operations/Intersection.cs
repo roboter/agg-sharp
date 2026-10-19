@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2014, Lars Brubaker
 All rights reserved.
 
@@ -35,11 +35,21 @@ using MatterHackers.VectorMath;
 
 namespace MatterHackers.Csg.Operations
 {
+	/// <summary>
+	/// Represents a CSG Boolean Intersection operation keeping only the overlapping 3D region shared by two solids (A ∩ B).
+	/// In code, you can also use the '*' operator: solidA * solidB.
+	/// </summary>
 	public class Intersection : CsgObject
 	{
 		public CsgObject a;
 		public CsgObject b;
 
+		/// <summary>
+		/// Computes the intersection of two solids, retaining only the common overlapping volume (A * B).
+		/// </summary>
+		/// <param name="a">The first solid.</param>
+		/// <param name="b">The second solid.</param>
+		/// <param name="name">Optional identifier name.</param>
 		public Intersection(CsgObject a, CsgObject b, string name = "")
 			: base(name)
 		{
@@ -47,6 +57,10 @@ namespace MatterHackers.Csg.Operations
 			this.b = b;
 		}
 
+		/// <summary>
+		/// Creates a copy of an existing Intersection operation solid.
+		/// </summary>
+		/// <param name="objectToCopy">The source intersection to copy.</param>
 		public Intersection(Intersection objectToCopy)
 			: this(objectToCopy.a, objectToCopy.b, objectToCopy.name)
 		{

@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2014, Lars Brubaker
 All rights reserved.
 
@@ -31,10 +31,14 @@ using MatterHackers.VectorMath;
 
 namespace MatterHackers.Csg.Transform
 {
+	/// <summary>
+	/// Represents a spatial translation (offset/movement) transformation applied to a 3D CSG object along the X, Y, and Z axes.
+	/// </summary>
 	public class Translate : TransformBase
 	{
 		private Vector3 translateCache;
 
+		/// <summary>The current 3D translation offset vector.</summary>
 		public Vector3 Translation
 		{
 			get
@@ -48,11 +52,25 @@ namespace MatterHackers.Csg.Transform
 			}
 		}
 
+		/// <summary>
+		/// Translates a CSG object by explicit X, Y, and Z offset distances.
+		/// </summary>
+		/// <param name="objectToTranslate">The CSG object to move in 3D space.</param>
+		/// <param name="x">Translation distance along the X axis (default: 0).</param>
+		/// <param name="y">Translation distance along the Y axis (default: 0).</param>
+		/// <param name="z">Translation distance along the Z axis (default: 0).</param>
+		/// <param name="name">Optional identifier name.</param>
 		public Translate(CsgObject objectToTranslate, double x = 0, double y = 0, double z = 0, string name = "")
 			: this(objectToTranslate, new Vector3(x, y, z), name)
 		{
 		}
 
+		/// <summary>
+		/// Translates a CSG object by a Vector3 displacement vector.
+		/// </summary>
+		/// <param name="objectToTranslate">The CSG object to move in 3D space.</param>
+		/// <param name="translation">Vector containing the (X, Y, Z) translation offsets.</param>
+		/// <param name="name">Optional identifier name.</param>
 		public Translate(CsgObject objectToTranslate, Vector3 translation, string name = "")
 			: base(objectToTranslate, name)
 		{

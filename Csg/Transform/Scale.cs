@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2014, Lars Brubaker
 All rights reserved.
 
@@ -31,20 +31,49 @@ using MatterHackers.VectorMath;
 
 namespace MatterHackers.Csg.Transform
 {
+	/// <summary>
+	/// Represents a 3D scaling (resizing) transformation applied to a CSG object uniformly or non-uniformly along X, Y, and Z.
+	/// </summary>
 	public class Scale : TransformBase
 	{
 		private Vector3 scaleCache;
 
+		/// <summary>Gets the 3D scale factors (X, Y, Z).</summary>
 		public Vector3 GetScale()
 		{
 			return scaleCache;
 		}
 
+		/// <summary>
+		/// Scales a CSG object uniformly by the same multiplier along all 3 axes (X, Y, Z).
+		/// </summary>
+		/// <param name="objectToScale">The CSG object to resize.</param>
+		/// <param name="scale">Uniform scale factor (e.g. 2.0 = double size, 0.5 = half size).</param>
+		/// <param name="name">Optional identifier name.</param>
+		public Scale(CsgObject objectToScale, double scale, string name = "")
+			: this(objectToScale, scale, scale, scale, name)
+		{
+		}
+
+		/// <summary>
+		/// Scales a CSG object non-uniformly with independent scale multipliers along X, Y, and Z.
+		/// </summary>
+		/// <param name="objectToScale">The CSG object to resize.</param>
+		/// <param name="x">Scale factor along the X axis.</param>
+		/// <param name="y">Scale factor along the Y axis.</param>
+		/// <param name="z">Scale factor along the Z axis.</param>
+		/// <param name="name">Optional identifier name.</param>
 		public Scale(CsgObject objectToScale, double x, double y, double z, string name = "")
 			: this(objectToScale, new Vector3(x, y, z), name)
 		{
 		}
 
+		/// <summary>
+		/// Scales a CSG object using a Vector3 containing the (X, Y, Z) scale factors.
+		/// </summary>
+		/// <param name="objectToScale">The CSG object to resize.</param>
+		/// <param name="scale">Vector containing the (X, Y, Z) scale factors.</param>
+		/// <param name="name">Optional identifier name.</param>
 		public Scale(CsgObject objectToScale, Vector3 scale, string name = "")
 			: base(objectToScale, name)
 		{
