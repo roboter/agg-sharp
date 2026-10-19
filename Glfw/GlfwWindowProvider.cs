@@ -1,4 +1,4 @@
-﻿//----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 // Anti-Grain Geometry - Version 2.4
 // Copyright (C) 2002-2005 Maxim Shemanarev (http://www.antigrain.com)
 //
@@ -16,29 +16,43 @@
 //          mcseemagg@yahoo.com
 //          http://www.antigrain.com
 //----------------------------------------------------------------------------
+using System.Collections.Generic;
+using System.Linq;
 using MatterHackers.Agg.UI;
 
 namespace MatterHackers.GlfwProvider
 {
-	public class GlfwWindowProvider : SingleWindowProvider
+	public class GlfwWindowProvider : ISystemWindowProvider
 	{
-		private GlfwPlatformWindow glfwPlatformWindow;
+		private static readonly List<SystemWindow> _openWindows = new List<SystemWindow>();
 
-		public override void ShowSystemWindow(SystemWindow systemWindow)
+		public IReadOnlyList<SystemWindow> OpenWindows => _openWindows;
+
+		public SystemWindow TopWindow => _openWindows.LastOrDefault();
+
+		public void ShowSystemWindow(SystemWindow systemWindow)
 		{
-			if (platformWindow == null)
+			if (!_openWindows.Contains(systemWindow))
 			{
-				glfwPlatformWindow = new GlfwPlatformWindow
-				{
-					WindowProvider = this
-				};
-
-				platformWindow = glfwPlatformWindow;
+				_openWindows.Add(systemWindow);
 			}
 
-			base.ShowSystemWindow(systemWindow);
+			var platformWindow = new GlfwPlatformWindow
+			{
+				WindowProvider = this
+			};
 
-			systemWindow.PlatformWindow = glfwPlatformWindow;
+			systemWindow.PlatformWindow = platformWindow;
+			platformWindow.ShowSystemWindow(systemWindow);
+		}
+
+		public void CloseSystemWindow(SystemWindow systemWindow)
+		{
+			_openWindows.Remove(systemWindow);
+			if (systemWindow.PlatformWindow is GlfwPlatformWindow glfwPlatformWindow)
+			{
+				glfwPlatformWindow.CloseWindow();
+			}
 		}
 	}
 }

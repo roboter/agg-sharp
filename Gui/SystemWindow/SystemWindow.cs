@@ -169,14 +169,8 @@ namespace MatterHackers.Agg.UI
 
 		public override void BringToFront()
 		{
-			if (this == AllOpenSystemWindows.First())
-			{
-				PlatformWindow.Activate();
-			}
-			else
-			{
-				Parent?.BringToFront();
-			}
+			base.BringToFront();
+			PlatformWindow?.Activate();
 		}
 
 		public override Graphics2D NewGraphics2D()

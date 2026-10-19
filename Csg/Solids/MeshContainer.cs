@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2014, Lars Brubaker
 All rights reserved.
 
@@ -53,7 +53,7 @@ namespace MatterHackers.Csg.Solids
 					if (polygonMesh != null)
 					{
 						// save to disk and return the path
-						sourceFileName = Path.ChangeExtension(Path.GetRandomFileName(), ".stl");
+						sourceFileName = System.IO.Path.ChangeExtension(System.IO.Path.GetRandomFileName(), ".stl");
 						PolygonMesh.Processors.StlProcessing.Save(polygonMesh, sourceFileName, CancellationToken.None);
 						return sourceFileName;
 					}

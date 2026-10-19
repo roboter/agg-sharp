@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (c) 2014, Lars Brubaker
 All rights reserved.
 
@@ -27,11 +27,13 @@ of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the FreeBSD Project.
 */
 
+using MatterHackers.Agg.VertexSource;
 using MatterHackers.Csg;
 using MatterHackers.Csg.Operations;
 using MatterHackers.Csg.Solids;
 using MatterHackers.Csg.Transform;
 using MatterHackers.PolygonMesh;
+using MatterHackers.PolygonMesh.Processors;
 using MatterHackers.VectorMath;
 using System;
 using System.Threading;
@@ -209,6 +211,54 @@ namespace MatterHackers.RenderOpenGl
 		}
 
 		#endregion NGonExtrusion
+
+		#region LinearExtrude
+
+		public PolygonMesh.Mesh CsgToMeshRecursive(LinearExtrude.LinearExtrudePrimitive objectToProcess)
+		{
+			if (Math.Abs(objectToProcess.TwistRadians) > 1e-6 && objectToProcess.Points != null && objectToProcess.Points.Length >= 3)
+			{
+				var twist = new TwistExtrude(
+					objectToProcess.Points,
+					objectToProcess.Height,
+					twistDegrees: MathHelper.RadiansToDegrees(objectToProcess.TwistRadians),
+					centered: true);
+				return CsgToMesh.Convert(twist);
+			}
+
+			var storage = new VertexStorage();
+			if (objectToProcess.Points != null && objectToProcess.Points.Length >= 3)
+			{
+				storage.MoveTo(objectToProcess.Points[0]);
+				for (int i = 1; i < objectToProcess.Points.Length; i++)
+				{
+					storage.LineTo(objectToProcess.Points[i]);
+				}
+				storage.ClosePolygon();
+			}
+			return VertexSourceToMesh.Extrude(storage, objectToProcess.Height);
+		}
+
+		#endregion LinearExtrude
+
+		#region RotateExtrude
+
+		public PolygonMesh.Mesh CsgToMeshRecursive(RotateExtrude.RotateExtrudePrimitive objectToProcess)
+		{
+			var storage = new VertexStorage();
+			if (objectToProcess.Points != null && objectToProcess.Points.Length >= 3)
+			{
+				storage.MoveTo(objectToProcess.Points[0].X + objectToProcess.AxisOffset, objectToProcess.Points[0].Y);
+				for (int i = 1; i < objectToProcess.Points.Length; i++)
+				{
+					storage.LineTo(objectToProcess.Points[i].X + objectToProcess.AxisOffset, objectToProcess.Points[i].Y);
+				}
+				storage.ClosePolygon();
+			}
+			return VertexSourceToMesh.Revolve(storage);
+		}
+
+		#endregion RotateExtrude
 
 		#region Sphere
 

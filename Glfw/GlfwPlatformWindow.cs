@@ -34,13 +34,15 @@ namespace MatterHackers.GlfwProvider
 {
 	public class GlfwPlatformWindow : IPlatformWindow
 	{
-		private static bool firstWindow = true;
+		private static GlfwPlatformWindow mainPlatformWindow = null;
+		public static readonly Dictionary<Window, GlfwPlatformWindow> WindowInstances = new();
+		public SystemWindow AggSystemWindow => aggSystemWindow;
 
-		private static MouseButtons mouseButton;
+		private MouseButtons mouseButton;
 
-		private static double mouseX;
+		private double mouseX;
 
-		private static double mouseY;
+		private double mouseY;
 
 		private readonly Dictionary<MouseButton, int> clickCount = new Dictionary<MouseButton, int>();
 
@@ -57,7 +59,6 @@ namespace MatterHackers.GlfwProvider
 		}
 
 		private bool iconified;
-		private static GlfwPlatformWindow staticThis;
 
 		public GlfwPlatformWindow()
 		{
@@ -118,42 +119,59 @@ namespace MatterHackers.GlfwProvider
 
 		public void BringToFront()
 		{
-			Glfw.ShowWindow(glfwWindow);
+			if (glfwWindow != Window.None)
+			{
+				Glfw.ShowWindow(glfwWindow);
+				Glfw.FocusWindow(glfwWindow);
+			}
 		}
 
 		public void Activate()
 		{
-			Glfw.ShowWindow(glfwWindow);
+			BringToFront();
 		}
 
 		public void Close()
 		{
-			throw new NotImplementedException();
+			if (this == mainPlatformWindow)
+			{
+				if (glfwWindow != Window.None)
+				{
+					Glfw.SetWindowShouldClose(glfwWindow, true);
+				}
+			}
+			else
+			{
+				CloseWindow();
+			}
+		}
+
+		public void CloseWindow()
+		{
+			if (glfwWindow != Window.None)
+			{
+				var win = glfwWindow;
+				glfwWindow = Window.None;
+				WindowInstances.Remove(win);
+				Glfw.DestroyWindow(win);
+			}
 		}
 
 		private readonly bool winformAlreadyClosing = false;
 
 		public void CloseSystemWindow(SystemWindow systemWindow)
 		{
-			// Prevent our call to SystemWindow.Close from recursing
-			if (winformAlreadyClosing)
+			if (this == mainPlatformWindow)
 			{
-				return;
+				if (glfwWindow != Window.None)
+				{
+					Glfw.SetWindowShouldClose(glfwWindow, true);
+				}
 			}
-
-			// Check for RootSystemWindow, close if found
-			string windowTypeName = systemWindow.GetType().Name;
-
-			if (windowTypeName == "RootSystemWindow")
+			else
 			{
-				// Close the main (first) PlatformWindow if it's being requested and not this instance
-				Glfw.SetWindowShouldClose(glfwWindow, true);
-
-				return;
+				CloseWindow();
 			}
-
-			aggSystemWindow = this.WindowProvider.TopWindow;
-			aggSystemWindow?.Invalidate();
 		}
 
 		public void Invalidate(RectangleDouble rectToInvalidate)
@@ -185,21 +203,19 @@ namespace MatterHackers.GlfwProvider
 
 		public void ShowSystemWindow(SystemWindow systemWindow)
 		{
-			// Set the active SystemWindow & PlatformWindow references
 			systemWindow.PlatformWindow = this;
+			this.aggSystemWindow = systemWindow;
 
 			systemWindow.AnchorAll();
 
-			if (firstWindow)
+			if (mainPlatformWindow == null)
 			{
-				firstWindow = false;
-				this.aggSystemWindow = systemWindow;
-
-				this.Show();
+				mainPlatformWindow = this;
+				this.Show(isMainWindow: true);
 			}
 			else
 			{
-				systemWindow.Size = new Vector2(this.aggSystemWindow.Width, this.aggSystemWindow.Height);
+				this.Show(isMainWindow: false);
 			}
 		}
 
@@ -210,37 +226,23 @@ namespace MatterHackers.GlfwProvider
 
 			mouseX = x;
 			mouseY = aggSystemWindow.Height - y;
-			WindowProvider.TopWindow.OnMouseMove(new MouseEventArgs(mouseButton, 0, mouseX, mouseY, 0));
+			aggSystemWindow.OnMouseMove(new MouseEventArgs(mouseButton, 0, mouseX, mouseY, 0));
 		}
 
 		private void ConditionalDrawAndRefresh(SystemWindow systemWindow)
 		{
 			if (this.Invalidated
-				&& !iconified)
+				&& !iconified
+				&& glfwWindow != Window.None)
 			{
+				Glfw.MakeContextCurrent(glfwWindow);
 				ResetViewport();
 
 				this.Invalidated = false;
 				Graphics2D graphics2D = NewGraphics2D();
-				for (var i = 0; i < this.WindowProvider.OpenWindows.Count; i++)
-				{
-					var window = this.WindowProvider.OpenWindows[i];
-
-					// Due to handling in CloseSystemWindow, testing can sometimes end up handling a draw event with no PlatformWindow, so skip this window.
-					// TODO: Unify this stuff with PlatformWin32?
-					if (window.PlatformWindow == null)
-						continue;
-
-					if (i > 0)
-					{
-						window.Size = systemWindow.Size;
-						ResetViewport();
-						graphics2D.FillRectangle(this.WindowProvider.OpenWindows[0].LocalBounds, new Agg.Color(Agg.Color.Black, 160));
-					}
-					
-					window.OnDrawBackground(graphics2D);
-					window.OnDraw(graphics2D);
-				}
+				
+				systemWindow.OnDrawBackground(graphics2D);
+				systemWindow.OnDraw(graphics2D);
 
 				Glfw.SwapBuffers(glfwWindow);
 			}
@@ -251,7 +253,7 @@ namespace MatterHackers.GlfwProvider
 			if (!IPlatformWindow.EnablePlatformWindowInput)
 				return;
 
-			WindowProvider.TopWindow.OnKeyPress(new KeyPressEventArgs((char)codePoint));
+			aggSystemWindow.OnKeyPress(new KeyPressEventArgs((char)codePoint));
 		}
 
 		public Agg.UI.Keys ModifierKeys { get; private set; } = Agg.UI.Keys.None;
@@ -306,7 +308,7 @@ namespace MatterHackers.GlfwProvider
 				UpdateKeyboard(mods);
 
 				var keyEvent = new Agg.UI.KeyEventArgs(keyData | ModifierKeys);
-				WindowProvider.TopWindow.OnKeyDown(keyEvent);
+				aggSystemWindow.OnKeyDown(keyEvent);
 
 				if (keyEvent.SuppressKeyPress)
 				{
@@ -319,7 +321,7 @@ namespace MatterHackers.GlfwProvider
 					{
 						case GLFW.Keys.Enter:
 						case GLFW.Keys.NumpadEnter:
-							WindowProvider.TopWindow.OnKeyPress(new KeyPressEventArgs((char)13));
+							aggSystemWindow.OnKeyPress(new KeyPressEventArgs((char)13));
 							break;
 					}
 				}
@@ -339,7 +341,7 @@ namespace MatterHackers.GlfwProvider
 
 				var keyEvent = new Agg.UI.KeyEventArgs(keyData | ModifierKeys);
 
-				WindowProvider.TopWindow.OnKeyUp(keyEvent);
+				aggSystemWindow.OnKeyUp(keyEvent);
 
 				if (suppressedKeyDowns.Contains(keyEvent.KeyCode))
 				{
@@ -677,14 +679,14 @@ namespace MatterHackers.GlfwProvider
 				lastMouseDownTime[button] = now;
 				if (clickCount.ContainsKey(button))
 				{
-					WindowProvider.TopWindow.OnMouseDown(new MouseEventArgs(mouseButton, clickCount[button], mouseX, mouseY, 0));
+					aggSystemWindow.OnMouseDown(new MouseEventArgs(mouseButton, clickCount[button], mouseX, mouseY, 0));
 				}
 			}
 			else if (state == InputState.Release)
 			{
 				if (clickCount.ContainsKey(button))
 				{
-					WindowProvider.TopWindow.OnMouseUp(new MouseEventArgs(mouseButton, clickCount[button], mouseX, mouseY, 0));
+					aggSystemWindow.OnMouseUp(new MouseEventArgs(mouseButton, clickCount[button], mouseX, mouseY, 0));
 				}
 			}
 		}
@@ -694,7 +696,7 @@ namespace MatterHackers.GlfwProvider
 			if (!IPlatformWindow.EnablePlatformWindowInput)
 				return;
 
-			WindowProvider.TopWindow.OnMouseWheel(new MouseEventArgs(MouseButtons.None, 0, mouseX, mouseY, (int)(y * 120)));
+			aggSystemWindow.OnMouseWheel(new MouseEventArgs(MouseButtons.None, 0, mouseX, mouseY, (int)(y * 120)));
 		}
 
 		private void ResetViewport()
@@ -719,30 +721,37 @@ namespace MatterHackers.GlfwProvider
 			GL.Viewport(0, 0, fbWidth, fbHeight); // Use all of the glControl painting area
 		}
 
-		private void Show()
+		private void Show(bool isMainWindow)
 		{
-			// Glfw.WindowHint(Hint.Decorated, false);
 			var config = AggContext.Config.GraphicsMode;
 			Glfw.WindowHint(Hint.Samples, config.FSAASamples);
-			Glfw.WindowHint(Hint.Visible, false); // this line causing crash on windows tablet
+			Glfw.WindowHint(Hint.Visible, false);
 			Glfw.WindowHint(Hint.CocoaRetinaFrameBuffer, true);
 
 			var screenSize = Glfw.PrimaryMonitor.WorkArea;
 
-			// Create window
 			if (aggSystemWindow.Maximized)
 			{
 				aggSystemWindow.Width = screenSize.Width;
 				aggSystemWindow.Height = screenSize.Height - screenSize.Y;
 			}
 
-			glfwWindow = Glfw.CreateWindow((int)aggSystemWindow.Width, (int)aggSystemWindow.Height, aggSystemWindow.Title, GLFW.Monitor.None, Window.None);
+			Window shareContext = (mainPlatformWindow != null && mainPlatformWindow != this) ? mainPlatformWindow.glfwWindow : Window.None;
+			glfwWindow = Glfw.CreateWindow((int)aggSystemWindow.Width, (int)aggSystemWindow.Height, aggSystemWindow.Title, GLFW.Monitor.None, shareContext);
 
-			Clipboard.SetSystemClipboard(new GlfwClipboard(glfwWindow));
+			if (glfwWindow == Window.None)
+			{
+				glfwWindow = Glfw.CreateWindow((int)aggSystemWindow.Width, (int)aggSystemWindow.Height, aggSystemWindow.Title, GLFW.Monitor.None, Window.None);
+			}
+
+			WindowInstances[glfwWindow] = this;
+
+			if (isMainWindow)
+			{
+				Clipboard.SetSystemClipboard(new GlfwClipboard(glfwWindow));
+			}
 
 			Glfw.MakeContextCurrent(glfwWindow);
-
-			// Effectively enables VSYNC by setting to 1.
 			Glfw.SwapInterval(1);
 
 			aggSystemWindow.PlatformWindow = this;
@@ -755,15 +764,18 @@ namespace MatterHackers.GlfwProvider
 
 			if (aggSystemWindow.Maximized)
 			{
-				// TODO: make this right
 				Glfw.SetWindowPosition(glfwWindow, 0, 0);
 				Glfw.MaximizeWindow(glfwWindow);
 			}
 			else if (aggSystemWindow.InitialDesktopPosition == new Point2D(-1, -1))
 			{
-				// Find center position based on window and monitor sizes
 				var x = (screenSize.Width - (int)aggSystemWindow.Width) / 2;
 				var y = (screenSize.Height - (int)aggSystemWindow.Height) / 2;
+				if (!isMainWindow)
+				{
+					x += 50;
+					y += 50;
+				}
 				Glfw.SetWindowPosition(glfwWindow, x, y);
 			}
 			else
@@ -773,22 +785,18 @@ namespace MatterHackers.GlfwProvider
 					(int)aggSystemWindow.InitialDesktopPosition.y);
 			}
 
-			staticThis = this;
-			Glfw.SetWindowSizeCallback(glfwWindow, (a, b, c) => staticThis.SizeCallback(a, b, c));
-			Glfw.SetWindowMaximizeCallback(glfwWindow, (a, b) => staticThis.MaximizeCallback(a, b));
-			Glfw.SetWindowIconifyCallback(glfwWindow, (a, b) => staticThis.IconifyCallback(a, b));
-
-			// Set a key callback
-			Glfw.SetKeyCallback(glfwWindow, (a, b, c, d, e) => staticThis.KeyCallback(a, b, c, d, e));
-			Glfw.SetCharCallback(glfwWindow, (a, b) => staticThis.CharCallback(a, b));
-			Glfw.SetCursorPositionCallback(glfwWindow, (a, b, c) => staticThis.CursorPositionCallback(a, b, c));
-			Glfw.SetMouseButtonCallback(glfwWindow, (a, b, c, d) => staticThis.MouseButtonCallback(a, b, c, d));
-			Glfw.SetScrollCallback(glfwWindow, (a, b, c) => staticThis.ScrollCallback(a, b, c));
-			Glfw.SetCloseCallback(glfwWindow, (a) => staticThis.CloseCallback(a));
-			Glfw.SetDropCallback(glfwWindow, (a, b, c) => staticThis.DropCallback(a, b, c));
+			Glfw.SetWindowSizeCallback(glfwWindow, (w, a, b) => { if (WindowInstances.TryGetValue(w, out var p)) p.SizeCallback(w, a, b); });
+			Glfw.SetWindowMaximizeCallback(glfwWindow, (w, a) => { if (WindowInstances.TryGetValue(w, out var p)) p.MaximizeCallback(w, a); });
+			Glfw.SetWindowIconifyCallback(glfwWindow, (w, a) => { if (WindowInstances.TryGetValue((Window)w, out var p)) p.IconifyCallback(w, a); });
+			Glfw.SetKeyCallback(glfwWindow, (w, a, b, c, d) => { if (WindowInstances.TryGetValue(w, out var p)) p.KeyCallback(w, a, b, c, d); });
+			Glfw.SetCharCallback(glfwWindow, (w, a) => { if (WindowInstances.TryGetValue(w, out var p)) p.CharCallback(w, a); });
+			Glfw.SetCursorPositionCallback(glfwWindow, (w, a, b) => { if (WindowInstances.TryGetValue(w, out var p)) p.CursorPositionCallback(w, a, b); });
+			Glfw.SetMouseButtonCallback(glfwWindow, (w, a, b, c) => { if (WindowInstances.TryGetValue(w, out var p)) p.MouseButtonCallback(w, a, b, c); });
+			Glfw.SetScrollCallback(glfwWindow, (w, a, b) => { if (WindowInstances.TryGetValue(w, out var p)) p.ScrollCallback(w, a, b); });
+			Glfw.SetCloseCallback(glfwWindow, (w) => { if (WindowInstances.TryGetValue(w, out var p)) p.CloseCallback(w); });
+			Glfw.SetDropCallback(glfwWindow, (w, a, b) => { if (WindowInstances.TryGetValue(w, out var p)) p.DropCallback(w, a, b); });
 
 			var applicationIcon = StaticData.Instance.LoadIcon("application.png");
-
 			if (applicationIcon != null)
 			{
 				Glfw.SetWindowIcon(glfwWindow,
@@ -800,11 +808,12 @@ namespace MatterHackers.GlfwProvider
 					});
 			}
 
-			// set the gl renderer to the GLFW specific one rather than the OpenTk one
-			var glfwGl = new GlfwGL();
-			GL.Instance = glfwGl;
-
-			ResetDeviceScale();
+			if (isMainWindow)
+			{
+				var glfwGl = new GlfwGL();
+				GL.Instance = glfwGl;
+				ResetDeviceScale();
+			}
 
 			Glfw.ShowWindow(glfwWindow);
 
@@ -812,16 +821,27 @@ namespace MatterHackers.GlfwProvider
 			aggSystemWindow.Size = new VectorMath.Vector2(width, height);
 			ResetViewport();
 
-			while (!Glfw.WindowShouldClose(glfwWindow))
+			if (!isMainWindow)
 			{
-				// Poll for OS events and swap front/back buffers
-				Glfw.PollEvents();
-				ConditionalDrawAndRefresh(aggSystemWindow);
+				this.Invalidated = true;
+				return;
+			}
 
-				// keep the event thread running
+			while (glfwWindow != Window.None && !Glfw.WindowShouldClose(glfwWindow))
+			{
+				Glfw.PollEvents();
+
+				var activeWindows = WindowInstances.Values.ToList();
+				foreach (var win in activeWindows)
+				{
+					if (win.glfwWindow != Window.None && !Glfw.WindowShouldClose(win.glfwWindow))
+					{
+						win.ConditionalDrawAndRefresh(win.aggSystemWindow);
+					}
+				}
+
 				UiThread.InvokePendingActions();
 
-				// the mac does not report maximize changes correctly
 				var maximized = Glfw.GetWindowAttribute(glfwWindow, WindowAttribute.Maximized);
 				if (maximized != aggSystemWindow.Maximized)
 				{
@@ -830,6 +850,15 @@ namespace MatterHackers.GlfwProvider
 
 				Thread.Sleep(1);
 			}
+
+			foreach (var win in WindowInstances.Values.ToList())
+			{
+				if (win != this)
+				{
+					win.CloseWindow();
+				}
+			}
+			CloseWindow();
 		}
 
 		public static string[] IntPtrToStringArray<TGenChar>(int size, IntPtr rRoot) where TGenChar : struct
